@@ -22,3 +22,16 @@ model ToolUsageLog {
 
   @@index([toolSlug])
 }
+
+// ============ MAINTENANCE REPORT TOOL ============
+model MaintenanceReport {
+  id          String   @id @default(cuid())
+  reportDate  DateTime // The date this report covers
+  csvFileName String
+  metrics     Json     // ReportMetrics object
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([reportDate])
+}
