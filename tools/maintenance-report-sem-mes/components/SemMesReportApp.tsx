@@ -81,7 +81,7 @@ export function SemMesReportApp() {
 
   // Copy report
   const reportRef = useRef<HTMLDivElement>(null);
-  const { copyAll, copying, copied } = useCopyReport(reportRef);
+  const { copyAll, copying, copied } = useCopyReport(reportRef, aggregations, aiContent);
   const { exportPDF, exporting } = usePDFExport(reportRef);
 
   // ──────────────────────────────────────────
