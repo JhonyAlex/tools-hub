@@ -36,3 +36,19 @@ model MaintenanceReport {
 
   @@index([reportDate])
 }
+
+// ============ MAINTENANCE REPORT SEM-MES TOOL ============
+model MaintenanceReportSemMes {
+  id             String   @id @default(cuid())
+  periodType     String   // "semanal" | "mensual" | "custom"
+  dateRangeStart DateTime
+  dateRangeEnd   DateTime
+  csvFileName    String
+  metrics        Json     // SemMesReportMetrics object
+  notes          String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([dateRangeStart])
+  @@index([periodType])
+}
