@@ -20,25 +20,31 @@ export function useDocuments(spaceId: string | null) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchDocuments = useCallback(async () => {
+  const fetchDocuments = useCallback(async (silent = false) => {
     if (!spaceId) return;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await fetch(`/api/auris-lm/spaces/${spaceId}/documents`);
       if (!res.ok) return;
-      const data = await res.json();
-      setDocuments(data.documents ?? []);
+      const data = (await res.json()) as { documents: AurisDocument[] };
+      const incoming = data.documents ?? [];
+      // Merge: prefer server data but keep optimistic entries not yet in server response
+      setDocuments((prev) => {
+        const serverIds = new Set(incoming.map((d) => d.id));
+        const optimistic = prev.filter((d) => !serverIds.has(d.id) && d.status === "processing");
+        return [...incoming, ...optimistic];
+      });
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [spaceId]);
 
-  // Poll for processing documents until all are ready
+  // Poll for processing documents until all are ready (silent = no loading spinner)
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current);
     const hasProcessing = documents.some((d) => d.status === "processing");
     if (hasProcessing) {
-      pollRef.current = setInterval(() => void fetchDocuments(), 2000);
+      pollRef.current = setInterval(() => void fetchDocuments(true), 2000);
     }
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);

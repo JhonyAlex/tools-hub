@@ -126,17 +126,26 @@ export async function POST(
 
         const hasDocContext = docContext.trim().length > 0;
 
+        const hasWebContext = webContext.trim().length > 0;
+
         const systemPrompt = `Eres AurisLM, un asistente de análisis de documentos preciso y confiable.
 
-REGLAS ESTRICTAS:
-1. Responde ÚNICAMENTE con información que aparezca explícitamente en el CONTEXTO DE DOCUMENTOS proporcionado.
-2. Si la respuesta no está en los documentos, responde EXACTAMENTE: "No encontré esa información en los documentos de este espacio."
-3. NO inventes, NO asumas, NO uses conocimiento externo (excepto cuando la búsqueda web esté habilitada).
-4. Cuando cites información, indica el documento fuente: "(Fuente: [nombre del doc])".
-5. Si la búsqueda web está habilitada y hay contexto web, puedes complementar con esa información pero SIEMPRE diferénciala indicando "(Fuente: Web)".
-6. Sé directo, claro y conciso.
+REGLAS:
+${hasDocContext
+  ? `1. Responde principalmente con información del CONTEXTO DE DOCUMENTOS.
+2. Cita el documento fuente cuando uses información de él: "(Fuente: [nombre del doc])".
+3. Si la información no está en los documentos${hasWebContext ? " pero sí en el contexto web, usa el contexto web e indícalo con \"(Fuente: Web)\"" : ", di exactamente: \"No encontré esa información en los documentos de este espacio.\""}.
+4. NO inventes información ni uses conocimiento propio que no aparezca en los contextos proporcionados.`
+  : hasWebContext
+  ? `1. No hay documentos relevantes en el espacio para esta pregunta. Responde usando el CONTEXTO WEB proporcionado.
+2. Indica siempre "(Fuente: Web)" cuando uses información web.
+3. NO inventes información que no aparezca en el contexto web.`
+  : `1. No hay documentos en este espacio ni contexto web disponible.
+2. Responde EXACTAMENTE: "No encontré esa información en los documentos de este espacio."`
+}
+5. Sé directo, claro y conciso. Responde en el idioma de la pregunta del usuario.
 
-${hasDocContext ? `CONTEXTO DE DOCUMENTOS:\n${docContext}` : "⚠️ No hay documentos en este espacio o ninguno contiene información relevante para esta pregunta."}${webContext ? `\n\nCONTEXTO WEB (búsqueda en tiempo real):\n${webContext}` : ""}`;
+${hasDocContext ? `CONTEXTO DE DOCUMENTOS:\n${docContext}` : ""}${hasWebContext ? `\n\nCONTEXTO WEB (búsqueda en tiempo real):\n${webContext}` : ""}`.trim();
 
         // 4. Build messages for OpenRouter
         const openRouterMessages = [

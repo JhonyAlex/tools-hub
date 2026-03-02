@@ -1,24 +1,40 @@
-import { Wrench, Sparkles } from "lucide-react";
+"use client";
+import { Wrench, Sparkles, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggleSimple } from "./ThemeToggle";
+import { useSidebar } from "@/core/providers";
 
 export function Header() {
+  const { collapsed, toggle } = useSidebar();
   return (
     <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
-        {/* Logo */}
-        <Link 
-          href="/" 
-          className="group flex items-center gap-2.5 font-semibold transition-opacity hover:opacity-80"
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-primary/30">
-            <Wrench className="h-4.5 w-4.5" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-base font-bold leading-tight">Tools Hub</span>
-            <span className="text-[10px] text-muted-foreground leading-tight hidden sm:block">Panel de herramientas</span>
-          </div>
-        </Link>
+        {/* Sidebar toggle + Logo */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggle}
+            className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            title={collapsed ? "Abrir menú" : "Cerrar menú"}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
+          <Link 
+            href="/" 
+            className="group flex items-center gap-2.5 font-semibold transition-opacity hover:opacity-80"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-primary/30">
+              <Wrench className="h-4.5 w-4.5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-base font-bold leading-tight">Tools Hub</span>
+              <span className="text-[10px] text-muted-foreground leading-tight hidden sm:block">Panel de herramientas</span>
+            </div>
+          </Link>
+        </div>
 
         {/* Right section */}
         <div className="flex items-center gap-3">
