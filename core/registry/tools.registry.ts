@@ -10,11 +10,13 @@ import { manifest as textCounter } from "@/tools/text-counter/manifest";
 import { manifest as jsonFormatter } from "@/tools/json-formatter/manifest";
 import { manifest as maintenanceReport } from "@/tools/maintenance-report/manifest";
 import { manifest as maintenanceReportSemMes } from "@/tools/maintenance-report-sem-mes/manifest";
+import { manifest as aurisLm } from "@/tools/auris-lm/manifest";
 // --- ADD NEW TOOL IMPORTS ABOVE THIS LINE ---
 
 export const TOOL_REGISTRY: ToolManifest[] = [
   maintenanceReport,
   maintenanceReportSemMes,
+  aurisLm,
   textCounter,
   jsonFormatter,
   // --- ADD NEW TOOLS TO THIS ARRAY ABOVE THIS LINE ---
