@@ -470,25 +470,41 @@ function TabButton({ label, icon, active, onClick, badge }: TabButtonProps) {
 // AI Analysis Overlay
 // ──────────────────────────────────────────
 const AI_STEPS = [
-  { icon: Database, label: "Procesando datos del período..." },
+  { icon: Database, label: "Preparando datos del período..." },
   { icon: BarChart3, label: "Analizando activos y tendencias..." },
-  { icon: Cpu, label: "Generando resumen ejecutivo..." },
+  { icon: Cpu, label: "Generando resumen con IA..." },
   { icon: CheckCircle2, label: "Finalizando reporte..." },
 ] as const;
+
+// Last step index — this step stays active (spinning) until the analysis actually finishes.
+// The overlay unmounts when isAnalyzing becomes false, so the user never sees
+// a "completed" state while the AI is still working.
+const LAST_STEP = AI_STEPS.length - 1;
 
 function AIAnalysisOverlay() {
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    const timers = AI_STEPS.map((_, i) => {
-      if (i === 0) return undefined;
-      return setTimeout(() => setCurrentStep(i), i * 4000);
-    });
-    return () => timers.forEach((t) => t && clearTimeout(t));
+    // Advance steps 1 and 2 on timers; step 3 (last) is reached
+    // but stays as "active/spinning" indefinitely until unmount.
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    for (let i = 1; i <= LAST_STEP; i++) {
+      // Stagger: 3s, 8s, 15s — last step takes longer to feel realistic
+      const delay = i < LAST_STEP ? i * 4000 : 12000;
+      timers.push(setTimeout(() => setCurrentStep(i), delay));
+    }
+    return () => timers.forEach(clearTimeout);
   }, []);
 
+  // Progress percentage: caps at 90% on the last step so it never
+  // looks "done" while the AI is still processing.
+  const progress =
+    currentStep < LAST_STEP
+      ? ((currentStep + 1) / AI_STEPS.length) * 100
+      : 90;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="w-full max-w-md mx-4 rounded-2xl border border-border bg-background p-8 shadow-2xl space-y-6">
         {/* Header */}
         <div className="flex flex-col items-center gap-3">
@@ -555,7 +571,7 @@ function AIAnalysisOverlay() {
         <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
           <div
             className="h-full rounded-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-1000 ease-out"
-            style={{ width: `${((currentStep + 1) / AI_STEPS.length) * 100}%` }}
+            style={{ width: `${progress}%` }}
           />
         </div>
       </div>
