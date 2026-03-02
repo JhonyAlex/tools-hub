@@ -69,8 +69,9 @@ export function calculateMetrics(records: OTRecord[]): Omit<ReportMetrics, "aiAn
     return isSameDay(finDate, yesterday);
   }).length;
 
-  // 6. Revisiones por Miguel (Observaciones contains "miguel", current year only)
+  // 6. Revisiones por Miguel (Observaciones contains "miguel", current year only, estado = "Terminado")
   const currentYearRecords = records.filter((r) => {
+    if (r.estado.trim().toLowerCase() !== "terminado") return false;
     const d = parseMadridDate(r.fecha) ?? parseMadridDate(r.fechaDeInicioDeSLA);
     return d ? d.getFullYear() >= CURRENT_YEAR : false;
   });
