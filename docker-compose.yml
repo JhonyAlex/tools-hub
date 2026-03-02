@@ -31,6 +31,7 @@ services:
       YOUR_SECRET_DEEPGRAM: ${YOUR_SECRET_DEEPGRAM}
       BRAVE_API_KEY: ${BRAVE_API_KEY}
       NODE_ENV: production
+      UPLOADS_DIR: /app/uploads
     volumes:
       - uploads_data:/app/uploads
     restart: unless-stopped

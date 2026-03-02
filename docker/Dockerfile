@@ -36,6 +36,10 @@ COPY --from=builder /app/docker/entrypoint.sh ./entrypoint.sh
 
 RUN chmod +x ./entrypoint.sh
 
+# Default uploads path — matches the Coolify volume mount.
+# Override with UPLOADS_DIR env var if your volume is mounted elsewhere.
+ENV UPLOADS_DIR=/app/public/uploads
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
