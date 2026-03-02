@@ -29,6 +29,18 @@ See CONTRIBUTING.md for the full guide. Summary:
 - Prisma models must be prefixed: `[ToolName][ModelName]`
 - All tool state stays inside the tool (no global stores)
 
+## Prisma Migrations (IMPORTANT)
+When adding or modifying models in `prisma/schema.prisma`, you MUST create a migration
+SQL file manually. The production entrypoint runs `prisma migrate deploy` on startup,
+which only applies migrations that have a corresponding folder in `prisma/migrations/`.
+
+Steps:
+1. Edit `prisma/schema.prisma` with the new/modified model
+2. Create a new folder: `prisma/migrations/YYYYMMDDHHMMSS_description/`
+3. Write the `migration.sql` inside with the raw SQL (CREATE TABLE, ALTER TABLE, etc.)
+4. The timestamp must be higher than existing migrations so it runs in order
+5. Do NOT rely on `prisma migrate dev` — it requires a local DB connection. Always create the migration file manually so it deploys automatically via `prisma migrate deploy` in production.
+
 ## Commands
 - `npm run dev` - Start dev server
 - `npm run build` - Production build
