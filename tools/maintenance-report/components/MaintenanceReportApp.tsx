@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Brain, Save, BarChart2, History, RefreshCw, AlertTriangle } from "lucide-react";
+import { useCallback, useState } from "react";
+import { Brain, Save, BarChart2, History, RefreshCw, AlertTriangle, HardDrive } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { parseCSV } from "../lib/csvParser";
 import { calculateMetrics } from "../lib/reportCalculator";
+import { useReportsStorage } from "../lib/useReportsStorage";
 import type { OTRecord, ReportMetrics, SavedReport, AIAnalysisResult } from "../types";
 
 import { UploadSection } from "./UploadSection";
@@ -19,6 +20,17 @@ type Tab = "analyze" | "history";
 export function MaintenanceReportApp() {
   const [tab, setTab] = useState<Tab>("analyze");
 
+  // Storage (DB when available, localStorage fallback)
+  const {
+    reports: savedReports,
+    loading: loadingReports,
+    usingLocalStorage,
+    fetchReports,
+    saveReport,
+    deleteReport,
+    updateNotes: updateReportNotes,
+  } = useReportsStorage();
+
   // CSV / analysis state
   const [csvFileName, setCsvFileName] = useState<string>("");
   const [records, setRecords] = useState<OTRecord[]>([]);
@@ -28,51 +40,8 @@ export function MaintenanceReportApp() {
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Saved reports
-  const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
-  const [loadingReports, setLoadingReports] = useState(false);
-
   // Late preventives list toggle
   const [showLateList, setShowLateList] = useState(false);
-
-  // ──────────────────────────────────────────
-  // Load saved reports on mount
-  // ──────────────────────────────────────────
-  const fetchReports = useCallback(async () => {
-    setLoadingReports(true);
-    try {
-      const res = await fetch("/api/maintenance-report/reports");
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setSavedReports(
-        (data.reports as Array<{
-          id: string;
-          reportDate: string;
-          csvFileName: string;
-          metrics: ReportMetrics;
-          notes: string;
-          createdAt: string;
-          updatedAt: string;
-        }>).map((r) => ({
-          id: r.id,
-          reportDate: r.reportDate,
-          csvFileName: r.csvFileName,
-          metrics: r.metrics as ReportMetrics,
-          notes: r.notes,
-          createdAt: r.createdAt,
-          updatedAt: r.updatedAt,
-        }))
-      );
-    } catch (e) {
-      console.error("Error fetching reports:", e);
-    } finally {
-      setLoadingReports(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
 
   // ──────────────────────────────────────────
   // CSV Upload handler
@@ -141,18 +110,7 @@ export function MaintenanceReportApp() {
     if (!metrics) return;
     setIsSaving(true);
     try {
-      const res = await fetch("/api/maintenance-report/reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reportDate: metrics.date,
-          csvFileName,
-          metrics,
-          notes: "",
-        }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      await fetchReports();
+      await saveReport(metrics.date, csvFileName, metrics, "");
       alert("✅ Reporte guardado correctamente.");
     } catch (e) {
       alert(`Error al guardar: ${String(e)}`);
@@ -165,28 +123,14 @@ export function MaintenanceReportApp() {
   // Delete saved report
   // ──────────────────────────────────────────
   const handleDelete = async (id: string) => {
-    const res = await fetch(`/api/maintenance-report/reports/${id}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      setSavedReports((prev) => prev.filter((r) => r.id !== id));
-    }
+    await deleteReport(id);
   };
 
   // ──────────────────────────────────────────
   // Update notes
   // ──────────────────────────────────────────
   const handleUpdateNotes = async (id: string, notes: string) => {
-    const res = await fetch(`/api/maintenance-report/reports/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notes }),
-    });
-    if (res.ok) {
-      setSavedReports((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, notes } : r))
-      );
-    }
+    await updateReportNotes(id, notes);
   };
 
   // ──────────────────────────────────────────
@@ -214,6 +158,16 @@ export function MaintenanceReportApp() {
           onClick={() => setTab("history")}
         />
       </div>
+
+      {/* localStorage notice */}
+      {usingLocalStorage && (
+        <div className="flex items-center gap-2 rounded-lg border border-yellow-200 bg-yellow-50/60 px-3 py-2 text-xs text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300">
+          <HardDrive size={13} className="shrink-0" />
+          <span>
+            <strong>Modo sin base de datos:</strong> los reportes se guardan en el navegador (localStorage). Para persistencia permanente configura <code className="font-mono">DATABASE_URL</code> en el entorno.
+          </span>
+        </div>
+      )}
 
       {/* ─── TAB: Nuevo análisis ─── */}
       {tab === "analyze" && (

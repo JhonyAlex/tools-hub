@@ -3,7 +3,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/core/lib/db";
 
+const DB_AVAILABLE = !!process.env.DATABASE_URL;
+
 export async function GET() {
+  if (!DB_AVAILABLE) {
+    return NextResponse.json({ reports: [], noDb: true });
+  }
   try {
     const reports = await db.maintenanceReport.findMany({
       orderBy: { reportDate: "desc" },
@@ -25,6 +30,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!DB_AVAILABLE) {
+    return NextResponse.json({ noDb: true }, { status: 503 });
+  }
   try {
     const body = await req.json();
     const { reportDate, csvFileName, metrics, notes } = body;

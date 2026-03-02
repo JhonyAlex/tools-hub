@@ -3,10 +3,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/core/lib/db";
 
+const DB_AVAILABLE = !!process.env.DATABASE_URL;
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!DB_AVAILABLE) return NextResponse.json({ noDb: true }, { status: 503 });
   try {
     const { id } = await params;
     const body = await req.json();
@@ -32,6 +35,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!DB_AVAILABLE) return NextResponse.json({ noDb: true }, { status: 503 });
   try {
     const { id } = await params;
     await db.maintenanceReport.delete({ where: { id } });
