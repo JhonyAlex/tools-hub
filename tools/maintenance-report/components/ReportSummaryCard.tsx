@@ -1,9 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Check } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Copy, 
+  Check, 
+  Clock, 
+  AlertTriangle, 
+  Hourglass, 
+  PlayCircle, 
+  CheckCircle2,
+  Calendar,
+  FileText,
+  Sparkles
+} from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatCard, StatGrid, StatCardCompact } from "./StatCard";
 import type { ReportMetrics } from "../types";
 
 interface ReportSummaryCardProps {
@@ -27,204 +39,200 @@ export function ReportSummaryCard({ metrics, csvFileName }: ReportSummaryCardPro
     });
   };
 
+  const formattedDate = formatDateLabel(metrics.date);
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
-        <div>
-          <CardTitle className="text-base font-semibold">
-            Reporte del {formatDateLabel(metrics.date)}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground mt-0.5">{csvFileName}</p>
+    <Card className="overflow-hidden border-border/50 shadow-sm">
+      {/* Header */}
+      <CardHeader className="pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Calendar className="h-4 w-4" />
+              </div>
+              <h2 className="text-lg font-semibold">
+                Reporte del {formattedDate}
+              </h2>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <FileText className="h-3.5 w-3.5" />
+              <span className="truncate max-w-[250px] sm:max-w-md">{csvFileName}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-2 self-start rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium transition-all hover:bg-accent hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {copied ? (
+              <>
+                <Check className="h-4 w-4 text-green-500" />
+                <span className="text-green-600">¡Copiado!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4" />
+                <span>Copiar resumen</span>
+              </>
+            )}
+          </button>
         </div>
-        <button
-          onClick={handleCopy}
-          title="Copiar para compartir"
-          className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
-        >
-          {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-          {copied ? "¡Copiado!" : "Copiar"}
-        </button>
       </CardHeader>
 
-      <CardContent className="space-y-2">
-        {/* Metric rows */}
-        <MetricRow
-          emoji="⏰"
-          label="Preventivos pendientes"
-          value={metrics.pendingPMs}
-          variant="warning"
-        />
-        <MetricRow
-          emoji="⚠️"
-          label="Preventivos atrasados"
-          value={metrics.latePMs}
-          sub={metrics.latePMsDateRange ? `${metrics.latePMsDateRange} 🔔` : undefined}
-          variant={metrics.latePMs > 0 ? "destructive" : "default"}
-        />
-        <MetricRow
-          emoji="🕒"
-          label="OT en Espera"
-          value={metrics.waitingOTs}
-          variant="secondary"
-        />
-        <MetricRow
-          emoji="➡️"
-          label="OT en curso"
-          value={metrics.inProgressOTs}
-          variant="secondary"
-        />
-        <MetricRow
-          emoji="✅"
-          label={`OT terminadas (${metrics.completedYesterdayDate})`}
-          value={metrics.completedYesterday}
-          variant="success"
-        />
-
-        <div className="border-t border-border pt-2 mt-2 space-y-1.5">
-          <StatusRow
-            ok={miguelOk}
-            label={
-              miguelOk
-                ? "Revisiones por Miguel registradas"
-                : `Revisiones por Miguel: ${metrics.miguelTotalReviewed} ✔ · ${metrics.miguelPendingCount} pendientes`
-            }
+      <CardContent className="space-y-6">
+        {/* Main stats grid */}
+        <StatGrid columns={3}>
+          <StatCard
+            icon={Clock}
+            label="Preventivos pendientes"
+            value={metrics.pendingPMs}
+            variant="warning"
           />
-          {!metrics.aiAnalyzed && (
-            <StatusRow ok={null} label="Análisis IA pendiente (pulsa Analizar)" />
-          )}
-          {metrics.aiAnalyzed && (
-            <>
-              <StatusRow
-                ok={descriptionsOk}
-                label={
-                  descriptionsOk
-                    ? "Descripciones correctas (motivo de fallo)"
-                    : `Descripciones: ${metrics.badDescriptions} incompleta(s)`
-                }
+          <StatCard
+            icon={AlertTriangle}
+            label="Preventivos atrasados"
+            value={metrics.latePMs}
+            subValue={metrics.latePMsDateRange || undefined}
+            variant={metrics.latePMs > 0 ? "destructive" : "success"}
+          />
+          <StatCard
+            icon={Hourglass}
+            label="OT en Espera"
+            value={metrics.waitingOTs}
+            variant="info"
+          />
+          <StatCard
+            icon={PlayCircle}
+            label="OT en curso"
+            value={metrics.inProgressOTs}
+            variant="info"
+          />
+          <StatCard
+            icon={CheckCircle2}
+            label={`Terminadas (${metrics.completedYesterdayDate})`}
+            value={metrics.completedYesterday}
+            variant="success"
+          />
+          <StatCard
+            icon={Sparkles}
+            label="Total OTs"
+            value={metrics.pendingPMs + metrics.waitingOTs + metrics.inProgressOTs + metrics.completedYesterday}
+            variant="default"
+          />
+        </StatGrid>
+
+        {/* Status section */}
+        <div className="rounded-xl border border-border/50 bg-muted/30 p-4 space-y-3">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Estado del reporte
+          </h3>
+          
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <StatusBadge 
+              status={miguelOk ? "success" : "warning"}
+              label={miguelOk ? "Revisiones completadas" : `${metrics.miguelPendingCount} revisiones pendientes`}
+              subLabel={!miguelOk ? `${metrics.miguelTotalReviewed} completadas` : undefined}
+            />
+            
+            {!metrics.aiAnalyzed ? (
+              <StatusBadge 
+                status="pending"
+                label="Análisis IA pendiente"
+                subLabel="Pulsa Analizar con IA"
               />
-              <StatusRow
-                ok={observacionesOk}
-                label={
-                  observacionesOk
-                    ? "Observaciones correctas (como se solucionó)"
-                    : `Observaciones: ${metrics.badObservaciones} incompleta(s)`
-                }
-              />
-            </>
-          )}
+            ) : (
+              <>
+                <StatusBadge 
+                  status={descriptionsOk ? "success" : "error"}
+                  label={descriptionsOk ? "Descripciones correctas" : `${metrics.badDescriptions} descripciones incompletas`}
+                />
+                <StatusBadge 
+                  status={observacionesOk ? "success" : "error"}
+                  label={observacionesOk ? "Observaciones correctas" : `${metrics.badObservaciones} observaciones incompletas`}
+                />
+              </>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-// ──────────────────────────────────────────
-// Sub-components
-// ──────────────────────────────────────────
-
-type Variant = "default" | "warning" | "destructive" | "secondary" | "success";
-
-function MetricRow({
-  emoji,
-  label,
-  value,
-  sub,
-  variant = "default",
-}: {
-  emoji: string;
+// Status badge component
+function StatusBadge({ 
+  status, 
+  label, 
+  subLabel 
+}: { 
+  status: "success" | "warning" | "error" | "pending";
   label: string;
-  value: number;
-  sub?: string;
-  variant?: Variant;
+  subLabel?: string;
 }) {
-  const colorMap: Record<Variant, string> = {
-    default: "bg-muted text-foreground",
-    warning: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
-    destructive: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-    secondary: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    success: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  const styles = {
+    success: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800",
+    warning: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
+    error: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800",
+    pending: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800",
+  };
+
+  const icons = {
+    success: <CheckCircle2 className="h-3.5 w-3.5" />,
+    warning: <AlertTriangle className="h-3.5 w-3.5" />,
+    error: <AlertTriangle className="h-3.5 w-3.5" />,
+    pending: <Clock className="h-3.5 w-3.5" />,
   };
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 bg-muted/40">
-      <span className="text-sm flex items-center gap-2">
-        <span role="img">{emoji}</span>
-        <span>{label}</span>
-        {sub && <span className="text-muted-foreground text-xs">({sub})</span>}
-      </span>
-      <span
-        className={`min-w-[2rem] rounded-md px-2 py-0.5 text-center text-sm font-bold ${colorMap[variant]}`}
-      >
-        {value}
-      </span>
+    <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${styles[status]}`}>
+      {icons[status]}
+      <div className="flex flex-col">
+        <span className="font-medium">{label}</span>
+        {subLabel && <span className="text-xs opacity-80">{subLabel}</span>}
+      </div>
     </div>
   );
 }
 
-function StatusRow({
-  ok,
-  label,
-}: {
-  ok: boolean | null;
-  label: string;
-}) {
-  const icon =
-    ok === null ? "⏳" : ok ? "✅" : "❌";
-  const textColor =
-    ok === null
-      ? "text-muted-foreground"
-      : ok
-      ? "text-green-700 dark:text-green-400"
-      : "text-red-600 dark:text-red-400";
-
-  return (
-    <div className={`flex items-center gap-2 text-sm ${textColor}`}>
-      <span>{icon}</span>
-      <span>{label}</span>
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────
-
-function formatDateLabel(isoDate: string) {
-  const d = new Date(isoDate);
+// Helper functions
+function formatDateLabel(dateStr: string): string {
+  const d = new Date(dateStr);
   return d.toLocaleDateString("es-ES", {
+    weekday: "long",
     day: "numeric",
-    month: "short",
-    year: "numeric",
+    month: "long",
   });
 }
 
-export function buildShareText(m: ReportMetrics): string {
-  const lines: string[] = [];
+export function buildShareText(metrics: ReportMetrics): string {
+  const parts: string[] = [];
+  parts.push(`📊 Reporte del ${formatDateLabel(metrics.date)}`);
+  parts.push("");
+  parts.push(`⏰ Preventivos pendientes: ${metrics.pendingPMs}`);
+  if (metrics.latePMs > 0) {
+    parts.push(`⚠️ Preventivos atrasados: ${metrics.latePMs}${metrics.latePMsDateRange ? ` (${metrics.latePMsDateRange})` : ""}`);
+  }
+  parts.push(`🕒 OT en Espera: ${metrics.waitingOTs}`);
+  parts.push(`➡️ OT en curso: ${metrics.inProgressOTs}`);
+  parts.push(`✅ OT terminadas (${metrics.completedYesterdayDate}): ${metrics.completedYesterday}`);
 
-  lines.push(`⏰ Preventivos pendientes: ${m.pendingPMs}`);
-
-  const lateStr = m.latePMsDateRange ? ` (${m.latePMsDateRange}) 🔔` : "";
-  lines.push(`⚠️ Preventivos atrasados: ${m.latePMs}${lateStr}`);
-
-  lines.push(`🕒 OT en Espera: ${m.waitingOTs}`);
-  lines.push(`➡️ OT en curso: ${m.inProgressOTs}`);
-  lines.push(`✅ OT terminadas ${m.completedYesterdayDate}: ${m.completedYesterday}`);
-  lines.push(``);
-
-  if (m.aiAnalyzed) {
-    const descOk = m.badDescriptions === 0;
-    const obsOk = m.badObservaciones === 0;
-    lines.push(
-      `${descOk ? "✅" : "❌"} Descripciones correctas (Motivo de fallo, como se solucionó)`
-    );
-  } else {
-    lines.push(`⏳ Descripciones correctas (Motivo de fallo, como se solucionó)`);
+  if (metrics.miguelPendingCount > 0) {
+    parts.push("");
+    parts.push(`⚠️ ${metrics.miguelPendingCount} OTs sin revisión de Miguel`);
   }
 
-  const miguelOk = m.miguelPendingCount === 0;
-  lines.push(
-    `${miguelOk ? "✅" : "❌"} Revisiones por Miguel registradas.`
-  );
+  if (metrics.aiAnalyzed) {
+    if (metrics.badDescriptions > 0 || metrics.badObservaciones > 0) {
+      parts.push("");
+      if (metrics.badDescriptions > 0) {
+        parts.push(`📝 ${metrics.badDescriptions} descripción(es) incompleta(s)`);
+      }
+      if (metrics.badObservaciones > 0) {
+        parts.push(`💬 ${metrics.badObservaciones} observacion(es) incompleta(s)`);
+      }
+    }
+  }
 
-  return lines.join("\n");
+  return parts.join("\n");
 }

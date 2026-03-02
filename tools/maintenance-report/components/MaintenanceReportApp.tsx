@@ -1,19 +1,34 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Brain, Save, BarChart2, History, RefreshCw, AlertTriangle, HardDrive } from "lucide-react";
+import { 
+  Brain, 
+  Save, 
+  BarChart2, 
+  History, 
+  RefreshCw, 
+  AlertTriangle, 
+  HardDrive,
+  Sparkles,
+  FileText,
+  ChevronRight
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { parseCSV } from "../lib/csvParser";
 import { calculateMetrics } from "../lib/reportCalculator";
 import { useReportsStorage } from "../lib/useReportsStorage";
 import type { OTRecord, ReportMetrics, SavedReport, AIAnalysisResult } from "../types";
 
-import { UploadSection } from "./UploadSection";
+import { UploadSection, UploadError } from "./UploadSection";
 import { ReportSummaryCard } from "./ReportSummaryCard";
 import { AIDescriptionsPanel } from "./AIDescriptionsPanel";
 import { MiguelPanel } from "./MiguelPanel";
 import { HistoryChart } from "./HistoryChart";
 import { SavedReportsList } from "./SavedReportsList";
+import { StatCard } from "./StatCard";
 
 type Tab = "analyze" | "history";
 
@@ -111,9 +126,9 @@ export function MaintenanceReportApp() {
     setIsSaving(true);
     try {
       await saveReport(metrics.date, csvFileName, metrics, "");
-      alert("✅ Reporte guardado correctamente.");
+      // Show success toast or notification
     } catch (e) {
-      alert(`Error al guardar: ${String(e)}`);
+      setAnalyzeError(`Error al guardar: ${String(e)}`);
     } finally {
       setIsSaving(false);
     }
@@ -147,69 +162,100 @@ export function MaintenanceReportApp() {
   // Render
   // ──────────────────────────────────────────
   return (
-    <div className="space-y-5">
-      {/* TABS */}
-      <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
-        <TabBtn label="Nuevo análisis" icon={<BarChart2 size={15} />} active={tab === "analyze"} onClick={() => setTab("analyze")} />
-        <TabBtn
-          label={`Historial${savedReports.length > 0 ? ` (${savedReports.length})` : ""}`}
-          icon={<History size={15} />}
-          active={tab === "history"}
-          onClick={() => setTab("history")}
-        />
+    <div className="space-y-6 animate-in">
+      {/* Header */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20">
+            <BarChart2 className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Reporte de Mantenimiento</h1>
+            <p className="text-sm text-muted-foreground">
+              Analiza y gestiona las órdenes de trabajo
+            </p>
+          </div>
+        </div>
+
+        {/* TABS */}
+        <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
+          <TabButton
+            label="Nuevo análisis"
+            icon={<BarChart2 className="h-4 w-4" />}
+            active={tab === "analyze"}
+            onClick={() => setTab("analyze")}
+          />
+          <TabButton
+            label="Historial"
+            icon={<History className="h-4 w-4" />}
+            active={tab === "history"}
+            onClick={() => setTab("history")}
+            badge={savedReports.length > 0 ? savedReports.length : undefined}
+          />
+        </div>
       </div>
 
       {/* localStorage notice */}
       {usingLocalStorage && (
-        <div className="flex items-center gap-2 rounded-lg border border-yellow-200 bg-yellow-50/60 px-3 py-2 text-xs text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300">
-          <HardDrive size={13} className="shrink-0" />
-          <span>
-            <strong>Modo sin base de datos:</strong> los reportes se guardan en el navegador (localStorage). Para persistencia permanente configura <code className="font-mono">DATABASE_URL</code> en el entorno.
-          </span>
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+          <HardDrive className="h-5 w-5 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Modo sin base de datos</p>
+            <p className="text-xs opacity-90 mt-0.5">
+              Los reportes se guardan en el navegador (localStorage). Para persistencia permanente configura <code className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1 rounded">DATABASE_URL</code> en el entorno.
+            </p>
+          </div>
         </div>
       )}
 
       {/* ─── TAB: Nuevo análisis ─── */}
       {tab === "analyze" && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* Upload */}
           <UploadSection onFile={handleFile} isLoading={isParsingCSV} />
 
           {/* Error */}
           {analyzeError && (
-            <Card className="border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-900/10">
-              <CardContent className="flex items-start gap-2 pt-4 text-sm text-red-600 dark:text-red-400">
-                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                {analyzeError}
-              </CardContent>
-            </Card>
+            <UploadError 
+              message={analyzeError} 
+              onRetry={() => setAnalyzeError(null)}
+            />
           )}
 
           {/* Results */}
           {metrics && (
-            <>
+            <div className="space-y-6 animate-slide-up">
               <ReportSummaryCard metrics={metrics} csvFileName={csvFileName} />
 
               {/* Action buttons */}
-              <div className="flex items-center gap-3 flex-wrap">
-                {records.length > 0 && (
-                  <button
+              <div className="flex flex-wrap items-center gap-3">
+                {records.length > 0 && !metrics.aiAnalyzed && (
+                  <Button
                     onClick={handleAIAnalysis}
                     disabled={isAnalyzing}
-                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    className="gap-2 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white shadow-lg shadow-purple-500/20 transition-all hover:shadow-purple-500/30"
                   >
-                    <Brain size={15} />
-                    {isAnalyzing ? "Analizando con IA…" : "Analizar con IA"}
-                  </button>
+                    <Brain className="h-4 w-4" />
+                    {isAnalyzing ? "Analizando con IA..." : "Analizar con IA"}
+                  </Button>
                 )}
-                <button
+                
+                {metrics.aiAnalyzed && (
+                  <Badge variant="outline" className="gap-1.5 px-3 py-1.5 text-sm border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Análisis IA completado
+                  </Badge>
+                )}
+                
+                <Button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50 transition-colors"
+                  variant="outline"
+                  className="gap-2"
                 >
-                  <Save size={15} />
-                  {isSaving ? "Guardando…" : "Guardar reporte"}
-                </button>
+                  <Save className="h-4 w-4" />
+                  {isSaving ? "Guardando..." : "Guardar reporte"}
+                </Button>
               </div>
 
               {/* Miguel panel */}
@@ -220,41 +266,58 @@ export function MaintenanceReportApp() {
 
               {/* Late preventives detail */}
               {metrics.latePMs > 0 && (
-                <Card>
-                  <CardContent className="pt-4 space-y-2">
+                <Card className="border-orange-200 dark:border-orange-800">
+                  <CardContent className="pt-6 space-y-4">
                     <button
-                      className="text-sm font-medium flex items-center gap-2 hover:text-primary transition-colors"
+                      className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors"
                       onClick={() => setShowLateList((v) => !v)}
                     >
-                      <AlertTriangle size={15} className="text-orange-500" />
+                      <AlertTriangle className="h-4 w-4 text-orange-500" />
                       {showLateList ? "Ocultar" : "Ver"} detalle de {metrics.latePMs} preventivos atrasados
+                      <ChevronRight className={cn("h-4 w-4 transition-transform", showLateList && "rotate-90")} />
                     </button>
-                    {showLateList && (
-                      <div className="overflow-x-auto rounded-md border border-border">
-                        <table className="w-full text-xs">
-                          <thead className="bg-muted/40">
-                            <tr>
-                              <th className="px-3 py-2 text-left font-medium">OT</th>
-                              <th className="px-3 py-2 text-left font-medium">Descripción</th>
-                              <th className="px-3 py-2 text-left font-medium">Creación</th>
-                              <th className="px-3 py-2 text-left font-medium">Días hábiles</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {metrics.latePreventivesList.map((l) => (
-                              <tr key={l.ordenDeTrabajo} className="border-t border-border">
-                                <td className="px-3 py-2 font-mono">{l.ordenDeTrabajo}</td>
-                                <td className="px-3 py-2 max-w-[220px] truncate" title={l.descripcion}>
-                                  {l.descripcion}
-                                </td>
-                                <td className="px-3 py-2 text-muted-foreground">{l.fecha}</td>
-                                <td className="px-3 py-2 font-bold text-red-600">{l.diasHabiles}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                    
+                    <div className={cn(
+                      "grid transition-all duration-300",
+                      showLateList ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                    )}>
+                      <div className="overflow-hidden">
+                        <div className="overflow-hidden rounded-lg border border-border">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="bg-muted/50 border-b border-border">
+                                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">OT</th>
+                                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Descripción</th>
+                                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Creación</th>
+                                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">Días hábiles</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border">
+                                {metrics.latePreventivesList.map((l) => (
+                                  <tr key={l.ordenDeTrabajo} className="hover:bg-muted/30 transition-colors">
+                                    <td className="px-4 py-3">
+                                      <code className="rounded bg-muted px-2 py-1 text-xs font-mono">
+                                        {l.ordenDeTrabajo}
+                                      </code>
+                                    </td>
+                                    <td className="px-4 py-3 max-w-[220px] truncate" title={l.descripcion}>
+                                      {l.descripcion}
+                                    </td>
+                                    <td className="px-4 py-3 text-muted-foreground">{l.fecha}</td>
+                                    <td className="px-4 py-3">
+                                      <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                                        {l.diasHabiles} días
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -263,24 +326,55 @@ export function MaintenanceReportApp() {
               {metrics.aiAnalyzed && metrics.aiResults.length > 0 && (
                 <AIDescriptionsPanel results={metrics.aiResults} />
               )}
-            </>
+            </div>
+          )}
+
+          {/* Empty state when no metrics */}
+          {!metrics && !isParsingCSV && !analyzeError && (
+            <Card className="border-dashed">
+              <CardContent className="py-12">
+                <div className="flex flex-col items-center justify-center text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-4">
+                    <FileText className="h-8 w-8 text-muted-foreground/50" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-muted-foreground">
+                    Sube un archivo CSV para comenzar
+                  </h3>
+                  <p className="text-sm text-muted-foreground/70 mt-1 max-w-sm">
+                    Arrastra el archivo de exportación de Primavera o selecciónalo manualmente
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
 
       {/* ─── TAB: Historial ─── */}
       {tab === "history" && (
-        <div className="space-y-5">
+        <div className="space-y-6 animate-slide-up">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Reportes guardados</h2>
-            <button
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <History className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Reportes guardados</h2>
+                <p className="text-sm text-muted-foreground">
+                  {savedReports.length} {savedReports.length === 1 ? "reporte" : "reportes"} en total
+                </p>
+              </div>
+            </div>
+            <Button
               onClick={fetchReports}
               disabled={loadingReports}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              variant="outline"
+              size="sm"
+              className="gap-2"
             >
-              <RefreshCw size={13} className={loadingReports ? "animate-spin" : ""} />
+              <RefreshCw className={cn("h-4 w-4", loadingReports && "animate-spin")} />
               Actualizar
-            </button>
+            </Button>
           </div>
 
           <HistoryChart reports={savedReports} />
@@ -298,30 +392,40 @@ export function MaintenanceReportApp() {
 }
 
 // ──────────────────────────────────────────
-// Tab button
+// Sub-components
 // ──────────────────────────────────────────
-function TabBtn({
-  label,
-  icon,
-  active,
-  onClick,
-}: {
+
+interface TabButtonProps {
   label: string;
   icon: React.ReactNode;
   active: boolean;
   onClick: () => void;
-}) {
+  badge?: number;
+}
+
+function TabButton({ label, icon, active, onClick, badge }: TabButtonProps) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${
+      className={cn(
+        "relative flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200",
         active
-          ? "bg-background text-foreground shadow-sm"
-          : "text-muted-foreground hover:text-foreground"
-      }`}
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+      )}
     >
       {icon}
-      {label}
+      <span>{label}</span>
+      {badge !== undefined && (
+        <span className={cn(
+          "ml-1 rounded-full px-2 py-0.5 text-xs",
+          active
+            ? "bg-primary-foreground/20"
+            : "bg-muted text-muted-foreground"
+        )}>
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
