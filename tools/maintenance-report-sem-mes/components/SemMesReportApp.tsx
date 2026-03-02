@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Brain,
   Save,
@@ -497,6 +498,10 @@ const LAST_STEP = AI_STEPS.length - 1;
 
 function AIAnalysisOverlay({ onCancel }: { onCancel: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  // Wait for client mount (portal needs document.body)
+  useEffect(() => setMounted(true), []);
 
   // Block body scroll while overlay is mounted
   useEffect(() => {
@@ -521,10 +526,24 @@ function AIAnalysisOverlay({ onCancel }: { onCancel: () => void }) {
       ? ((currentStep + 1) / AI_STEPS.length) * 100
       : 90;
 
-  return (
+  if (!mounted) return null;
+
+  // Render via portal so fixed positioning works regardless of parent transforms
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0 }}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 99999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0,0,0,0.5)",
+        backdropFilter: "blur(4px)",
+      }}
     >
       <div className="w-full max-w-md mx-4 rounded-2xl border border-border bg-background p-8 shadow-2xl space-y-6">
         {/* Header */}
@@ -608,6 +627,7 @@ function AIAnalysisOverlay({ onCancel }: { onCancel: () => void }) {
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
