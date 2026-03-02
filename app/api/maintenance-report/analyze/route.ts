@@ -24,8 +24,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const currentYear = new Date().getFullYear();
-    const results = await analyzeDescriptions(records, apiKey, currentYear);
+    const results = await analyzeDescriptions(records, apiKey);
 
     return NextResponse.json({ results });
   } catch (err) {

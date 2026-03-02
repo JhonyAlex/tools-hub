@@ -3,9 +3,10 @@
 // description quality and solution documentation
 // ============================================================
 import type { OTRecord, AIAnalysisResult } from "../types";
+import { getPreviousBusinessDay, parseMadridDate, isSameDay } from "./dateUtils";
 
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = "openai/gpt-4o-mini";
+const MODEL = "deepseek/deepseek-v3.2";
 
 const BATCH_SIZE = 20;
 
@@ -83,18 +84,13 @@ ${JSON.stringify(items, null, 2)}`;
 export async function analyzeDescriptions(
   records: OTRecord[],
   apiKey: string,
-  currentYear: number = new Date().getFullYear()
 ): Promise<AIAnalysisResult[]> {
-  // Only analyze non-preventive OTs from current year onwards
+  // Only analyze OTs terminated the previous business day
+  const yesterday = getPreviousBusinessDay(new Date());
   const toAnalyze = records.filter((r) => {
-    const isPreventiva = /preventiv/i.test(r.tipoDeOT);
-    if (isPreventiva) return false;
-    // Check year from creation date or SLA start
-    const dateStr = r.fecha || r.fechaDeInicioDeSLA;
-    if (!dateStr) return false;
-    const match = dateStr.match(/(\d{4})/);
-    if (!match) return false;
-    return parseInt(match[1]) >= currentYear;
+    if (r.estado.trim().toLowerCase() !== "terminado") return false;
+    const finDate = parseMadridDate(r.fechaDeFinDeSLA);
+    return finDate ? isSameDay(finDate, yesterday) : false;
   });
 
   if (toAnalyze.length === 0) return [];

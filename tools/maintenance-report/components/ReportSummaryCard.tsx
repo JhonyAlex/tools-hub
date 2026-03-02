@@ -110,7 +110,7 @@ export function ReportSummaryCard({ metrics, csvFileName }: ReportSummaryCardPro
           />
           <StatCard
             icon={CheckCircle2}
-            label={`Terminadas (${metrics.completedYesterdayDate})`}
+            label={`OT terminadas ${getYesterdayLabel()}`}
             value={metrics.completedYesterday}
             variant="success"
           />
@@ -196,6 +196,11 @@ function StatusBadge({
 }
 
 // Helper functions
+function getYesterdayLabel(): string {
+  // If today is Monday (1), previous business day was Friday
+  return new Date().getDay() === 1 ? "viernes" : "ayer";
+}
+
 function formatDateLabel(dateStr: string): string {
   const d = new Date(dateStr);
   return d.toLocaleDateString("es-ES", {
@@ -207,6 +212,8 @@ function formatDateLabel(dateStr: string): string {
 
 export function buildShareText(metrics: ReportMetrics): string {
   const parts: string[] = [];
+  const yesterdayLabel = new Date().getDay() === 1 ? "viernes" : "ayer";
+
   parts.push(`📊 Reporte del ${formatDateLabel(metrics.date)}`);
   parts.push("");
   parts.push(`⏰ Preventivos pendientes: ${metrics.pendingPMs}`);
@@ -215,22 +222,26 @@ export function buildShareText(metrics: ReportMetrics): string {
   }
   parts.push(`🕒 OT en Espera: ${metrics.waitingOTs}`);
   parts.push(`➡️ OT en curso: ${metrics.inProgressOTs}`);
-  parts.push(`✅ OT terminadas (${metrics.completedYesterdayDate}): ${metrics.completedYesterday}`);
+  parts.push(`✅ OT terminadas ${yesterdayLabel}: ${metrics.completedYesterday}`);
 
-  if (metrics.miguelPendingCount > 0) {
-    parts.push("");
+  parts.push("");
+  if (metrics.miguelPendingCount === 0) {
+    parts.push(`✅ Revisiones por Miguel registradas`);
+  } else {
     parts.push(`⚠️ ${metrics.miguelPendingCount} OTs sin revisión de Miguel`);
   }
 
   if (metrics.aiAnalyzed) {
-    if (metrics.badDescriptions > 0 || metrics.badObservaciones > 0) {
-      parts.push("");
-      if (metrics.badDescriptions > 0) {
-        parts.push(`📝 ${metrics.badDescriptions} descripción(es) incompleta(s)`);
-      }
-      if (metrics.badObservaciones > 0) {
-        parts.push(`💬 ${metrics.badObservaciones} observacion(es) incompleta(s)`);
-      }
+    parts.push("");
+    if (metrics.badDescriptions === 0) {
+      parts.push(`✅ Descripciones correctas (Motivo de fallo)`);
+    } else {
+      parts.push(`⚠️ ${metrics.badDescriptions} descripción(es) sin motivo de fallo claro`);
+    }
+    if (metrics.badObservaciones === 0) {
+      parts.push(`✅ Observaciones correctas (Cómo se solucionó)`);
+    } else {
+      parts.push(`⚠️ ${metrics.badObservaciones} observación(es) sin solución documentada`);
     }
   }
 
