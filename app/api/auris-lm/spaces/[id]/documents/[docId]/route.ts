@@ -5,6 +5,38 @@ import path from "path";
 
 const UPLOADS_BASE = process.env.UPLOADS_DIR ?? "/app/uploads";
 
+// GET /api/auris-lm/spaces/[id]/documents/[docId] – fetch doc with extracted text
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string; docId: string }> }
+) {
+  try {
+    const { id: spaceId, docId } = await params;
+    const doc = await db.aurisLMDocument.findFirst({
+      where: { id: docId, spaceId },
+      select: {
+        id: true,
+        spaceId: true,
+        originalName: true,
+        storedPath: true,
+        mimeType: true,
+        fileSize: true,
+        status: true,
+        errorMessage: true,
+        extractedText: true,
+        createdAt: true,
+      },
+    });
+    if (!doc) {
+      return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+    }
+    return NextResponse.json({ document: doc });
+  } catch (err) {
+    console.error("[AurisLM] GET document:", err);
+    return NextResponse.json({ error: "Error al obtener documento" }, { status: 500 });
+  }
+}
+
 // DELETE /api/auris-lm/spaces/[id]/documents/[docId]
 export async function DELETE(
   _req: NextRequest,

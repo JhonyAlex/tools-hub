@@ -91,6 +91,7 @@ export function SpaceView({ space }: SpaceViewProps) {
               )}
             </div>
             <DocumentList
+              spaceId={space.id}
               documents={documents}
               loading={docsLoading}
               uploading={uploading}

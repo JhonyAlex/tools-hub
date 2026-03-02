@@ -1,13 +1,15 @@
 "use client";
 import { useState } from "react";
-import { FileText, FileAudio, Trash2, Download, Loader2, AlertCircle, CheckCircle2, ClipboardPaste, Upload } from "lucide-react";
+import { FileText, FileAudio, Trash2, Download, Loader2, AlertCircle, CheckCircle2, ClipboardPaste, Upload, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { AurisDocument } from "../lib/useDocuments";
 import { UploadDropzone } from "./UploadDropzone";
+import { DocumentPreviewModal } from "./DocumentPreviewModal";
 
 interface DocumentListProps {
+  spaceId: string;
   documents: AurisDocument[];
   loading: boolean;
   uploading: boolean;
@@ -53,6 +55,7 @@ function StatusBadge({ status, errorMessage }: { status: AurisDocument["status"]
 }
 
 export function DocumentList({
+  spaceId,
   documents,
   loading,
   uploading,
@@ -68,6 +71,8 @@ export function DocumentList({
   const [textBody, setTextBody] = useState("");
   const [addingText, setAddingText] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // ── Preview modal
+  const [previewDoc, setPreviewDoc] = useState<AurisDocument | null>(null);
 
   const handleAddText = async () => {
     const body = textBody.trim();
@@ -198,8 +203,10 @@ export function DocumentList({
               key={doc.id}
               className={cn(
                 "flex items-start gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors",
-                doc.status === "error" && "border-destructive/40 bg-destructive/5"
+                doc.status === "error" && "border-destructive/40 bg-destructive/5",
+                doc.status === "ready" && "hover:bg-accent/40 cursor-pointer"
               )}
+              onClick={() => doc.status === "ready" && setPreviewDoc(doc)}
             >
               {/* Icon */}
               <div className="mt-0.5 shrink-0 text-muted-foreground">
@@ -229,7 +236,17 @@ export function DocumentList({
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                {doc.status === "ready" && (
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
+                    title="Ver texto"
+                    onClick={() => setPreviewDoc(doc)}
+                  >
+                    <Eye />
+                  </Button>
+                )}
                 <Button
                   size="icon-xs"
                   variant="ghost"
@@ -252,6 +269,13 @@ export function DocumentList({
           ))}
         </div>
       )}
+
+      {/* Document preview modal */}
+      <DocumentPreviewModal
+        document={previewDoc}
+        spaceId={spaceId}
+        onClose={() => setPreviewDoc(null)}
+      />
     </div>
   );
 }
