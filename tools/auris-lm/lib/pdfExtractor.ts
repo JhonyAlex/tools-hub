@@ -2,16 +2,16 @@
 // PDF Text Extractor (server-only)
 // ============================================================
 
-// pdf-parse ESM/CJS interop – the ESM build has no default export,
-// but the CJS runtime module does; @ts-expect-error suppresses the type error.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require("pdf-parse") as (
-  dataBuffer: Buffer,
-  options?: Record<string, unknown>
-) => Promise<{ text: string; numpages: number }>;
-
 export async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
+    // Lazy require to avoid module-level side-effects in pdf-parse
+    // (some versions attempt to read test fixture files at import time,
+    //  which crashes the entire route module in production containers).
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require("pdf-parse/lib/pdf-parse") as (
+      dataBuffer: Buffer,
+      options?: Record<string, unknown>
+    ) => Promise<{ text: string; numpages: number }>;
     const data = await pdfParse(buffer);
     return data.text ?? "";
   } catch (err) {

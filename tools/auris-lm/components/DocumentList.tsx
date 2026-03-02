@@ -12,7 +12,7 @@ interface DocumentListProps {
   loading: boolean;
   uploading: boolean;
   uploadProgress: number;
-  onUpload: (files: File[]) => Promise<void>;
+  onUpload: (files: File[]) => Promise<boolean>;
   onDelete: (id: string) => void;
   onDownload: (id: string, name: string) => void;
 }
@@ -67,6 +67,7 @@ export function DocumentList({
   const [textTitle, setTextTitle] = useState("");
   const [textBody, setTextBody] = useState("");
   const [addingText, setAddingText] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleAddText = async () => {
     const body = textBody.trim();
@@ -75,11 +76,16 @@ export function DocumentList({
     const fileName = title.replace(/[^a-z0-9_\-. ]/gi, "_").slice(0, 60) + ".txt";
     const file = new File([body], fileName, { type: "text/plain" });
     setAddingText(true);
-    await onUpload([file]);
+    setUploadError(null);
+    const ok = await onUpload([file]);
     setAddingText(false);
-    setTextTitle("");
-    setTextBody("");
-    setTab("file");
+    if (ok) {
+      setTextTitle("");
+      setTextBody("");
+      setTab("file");
+    } else {
+      setUploadError("No se pudo guardar el texto. Revisa la conexión e intenta de nuevo.");
+    }
   };
 
   return (
@@ -93,7 +99,7 @@ export function DocumentList({
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
-          onClick={() => setTab("file")}
+          onClick={() => { setTab("file"); setUploadError(null); }}
         >
           <Upload className="size-3" />
           Archivo
@@ -105,7 +111,7 @@ export function DocumentList({
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
-          onClick={() => setTab("text")}
+          onClick={() => { setTab("text"); setUploadError(null); }}
         >
           <ClipboardPaste className="size-3" />
           Texto
@@ -114,11 +120,20 @@ export function DocumentList({
 
       {/* Tab: file upload */}
       {tab === "file" && (
-        <UploadDropzone
-          onFiles={onUpload}
-          uploading={uploading}
-          uploadProgress={uploadProgress}
-        />
+        <>
+          <UploadDropzone
+            onFiles={async (files) => {
+              setUploadError(null);
+              const ok = await onUpload(files);
+              if (!ok) setUploadError("No se pudo subir el archivo. Revisa la conexión e intenta de nuevo.");
+            }}
+            uploading={uploading}
+            uploadProgress={uploadProgress}
+          />
+          {uploadError && (
+            <p className="text-xs text-destructive">{uploadError}</p>
+          )}
+        </>
       )}
 
       {/* Tab: paste text */}
@@ -139,6 +154,9 @@ export function DocumentList({
             rows={7}
             className="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
           />
+          {uploadError && tab === "text" && (
+            <p className="text-xs text-destructive">{uploadError}</p>
+          )}
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-muted-foreground">
               {textBody.trim().length > 0

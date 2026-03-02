@@ -33,10 +33,13 @@ export function SpaceView({ space }: SpaceViewProps) {
     clearHistory,
   } = useChat(space.id);
 
-  const handleUpload = async (files: File[]) => {
+  const handleUpload = async (files: File[]): Promise<boolean> => {
+    let allOk = true;
     for (const file of files) {
-      await uploadDocument(file);
+      const ok = await uploadDocument(file);
+      if (!ok) allOk = false;
     }
+    return allOk;
   };
 
   const readyDocs = documents.filter((d) => d.status === "ready");
