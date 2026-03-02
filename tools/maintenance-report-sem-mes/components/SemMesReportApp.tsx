@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Brain,
   Save,
@@ -11,6 +11,10 @@ import {
   Sparkles,
   FileText,
   Loader2,
+  Database,
+  BarChart3,
+  CheckCircle2,
+  Cpu,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -217,7 +221,9 @@ export function SemMesReportApp() {
   // Render
   // ──────────────────────────────────────────
   return (
-    <div className="space-y-6 animate-in">
+    <div className="space-y-6 animate-in relative">
+      {/* AI Analysis Overlay */}
+      {isAnalyzing && <AIAnalysisOverlay />}
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
@@ -457,5 +463,102 @@ function TabButton({ label, icon, active, onClick, badge }: TabButtonProps) {
         </span>
       )}
     </button>
+  );
+}
+
+// ──────────────────────────────────────────
+// AI Analysis Overlay
+// ──────────────────────────────────────────
+const AI_STEPS = [
+  { icon: Database, label: "Procesando datos del período..." },
+  { icon: BarChart3, label: "Analizando activos y tendencias..." },
+  { icon: Cpu, label: "Generando resumen ejecutivo..." },
+  { icon: CheckCircle2, label: "Finalizando reporte..." },
+] as const;
+
+function AIAnalysisOverlay() {
+  const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    const timers = AI_STEPS.map((_, i) => {
+      if (i === 0) return undefined;
+      return setTimeout(() => setCurrentStep(i), i * 4000);
+    });
+    return () => timers.forEach((t) => t && clearTimeout(t));
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="w-full max-w-md mx-4 rounded-2xl border border-border bg-background p-8 shadow-2xl space-y-6">
+        {/* Header */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-purple-500 text-white shadow-lg shadow-purple-500/30">
+            <Brain className="h-7 w-7" />
+          </div>
+          <div className="text-center">
+            <h3 className="text-lg font-semibold">Análisis con IA en progreso</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Esto puede tomar unos segundos...
+            </p>
+          </div>
+        </div>
+
+        {/* Steps */}
+        <div className="space-y-3">
+          {AI_STEPS.map((step, i) => {
+            const StepIcon = step.icon;
+            const isActive = i === currentStep;
+            const isDone = i < currentStep;
+
+            return (
+              <div
+                key={i}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-500",
+                  isActive && "bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800",
+                  isDone && "opacity-60",
+                  !isActive && !isDone && "opacity-30"
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-500",
+                    isActive && "bg-purple-100 text-purple-600 dark:bg-purple-800 dark:text-purple-300",
+                    isDone && "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400",
+                    !isActive && !isDone && "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {isDone ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : isActive ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <StepIcon className="h-4 w-4" />
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    "text-sm font-medium transition-all duration-500",
+                    isActive && "text-purple-700 dark:text-purple-300",
+                    isDone && "text-muted-foreground line-through",
+                    !isActive && !isDone && "text-muted-foreground"
+                  )}
+                >
+                  {step.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Progress bar */}
+        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-1000 ease-out"
+            style={{ width: `${((currentStep + 1) / AI_STEPS.length) * 100}%` }}
+          />
+        </div>
+      </div>
+    </div>
   );
 }

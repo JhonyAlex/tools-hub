@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import { Copy, Check, Loader2, FileDown } from "lucide-react";
+import { Mail, Check, Loader2, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -53,9 +53,9 @@ export const ReportContainer = forwardRef<HTMLDivElement, ReportContainerProps>(
             ) : copied ? (
               <Check className="h-4 w-4" />
             ) : (
-              <Copy className="h-4 w-4" />
+              <Mail className="h-4 w-4" />
             )}
-            {copied ? "¡Copiado!" : "Copiar todo"}
+            {copied ? "¡Copiado!" : "Copiar para email"}
           </Button>
         </div>
 
