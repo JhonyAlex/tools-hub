@@ -108,13 +108,13 @@ export async function POST(
       },
     });
 
-    // Respond immediately, then process in background
-    const response = NextResponse.json({ document: doc }, { status: 201 });
+    // Use setImmediate to ensure the HTTP response is flushed before processing starts.
+    // In Next.js standalone (Docker Node.js process), this runs reliably.
+    setImmediate(() => {
+      void processDocument(docId, buffer, mimeType, spaceId, isAudio, isPdf, isText);
+    });
 
-    // Background processing (fire-and-forget)
-    void processDocument(docId, buffer, mimeType, spaceId, isAudio, isPdf, isText);
-
-    return response;
+    return NextResponse.json({ document: doc }, { status: 201 });
   } catch (err) {
     console.error("[AurisLM] POST document:", err);
     return NextResponse.json({ error: "Error al subir documento" }, { status: 500 });

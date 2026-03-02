@@ -1,5 +1,6 @@
 "use client";
-import { FileText, FileAudio, Trash2, Download, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { FileText, FileAudio, Trash2, Download, Loader2, AlertCircle, CheckCircle2, ClipboardPaste, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -60,14 +61,104 @@ export function DocumentList({
   onDelete,
   onDownload,
 }: DocumentListProps) {
+  // ── Tabs: "file" or "text"
+  const [tab, setTab] = useState<"file" | "text">("file");
+  // ── Text paste state
+  const [textTitle, setTextTitle] = useState("");
+  const [textBody, setTextBody] = useState("");
+  const [addingText, setAddingText] = useState(false);
+
+  const handleAddText = async () => {
+    const body = textBody.trim();
+    if (!body) return;
+    const title = textTitle.trim() || "Texto pegado";
+    const fileName = title.replace(/[^a-z0-9_\-. ]/gi, "_").slice(0, 60) + ".txt";
+    const file = new File([body], fileName, { type: "text/plain" });
+    setAddingText(true);
+    await onUpload([file]);
+    setAddingText(false);
+    setTextTitle("");
+    setTextBody("");
+    setTab("file");
+  };
+
   return (
-    <div className="flex flex-col gap-4">
-      {/* Upload zone */}
-      <UploadDropzone
-        onFiles={onUpload}
-        uploading={uploading}
-        uploadProgress={uploadProgress}
-      />
+    <div className="flex flex-col gap-3">
+      {/* Tab switcher */}
+      <div className="flex rounded-lg border bg-muted/30 p-0.5 text-xs font-medium">
+        <button
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 transition-colors",
+            tab === "file"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          onClick={() => setTab("file")}
+        >
+          <Upload className="size-3" />
+          Archivo
+        </button>
+        <button
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 transition-colors",
+            tab === "text"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          onClick={() => setTab("text")}
+        >
+          <ClipboardPaste className="size-3" />
+          Texto
+        </button>
+      </div>
+
+      {/* Tab: file upload */}
+      {tab === "file" && (
+        <UploadDropzone
+          onFiles={onUpload}
+          uploading={uploading}
+          uploadProgress={uploadProgress}
+        />
+      )}
+
+      {/* Tab: paste text */}
+      {tab === "text" && (
+        <div className="flex flex-col gap-2">
+          <input
+            type="text"
+            placeholder="Título (ej: Notas reunión, Política interna…)"
+            value={textTitle}
+            onChange={(e) => setTextTitle(e.target.value)}
+            maxLength={80}
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+          />
+          <textarea
+            placeholder="Pega o escribe el texto aquí…"
+            value={textBody}
+            onChange={(e) => setTextBody(e.target.value)}
+            rows={7}
+            className="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+          />
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-muted-foreground">
+              {textBody.trim().length > 0
+                ? `${textBody.trim().length.toLocaleString()} caracteres`
+                : ""}
+            </span>
+            <Button
+              size="sm"
+              onClick={() => void handleAddText()}
+              disabled={!textBody.trim() || addingText}
+            >
+              {addingText ? (
+                <><Loader2 className="size-3.5 animate-spin mr-1" />Añadiendo…</>
+              ) : (
+                <><ClipboardPaste className="size-3.5 mr-1" />Añadir fuente</>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Document list */}
       {loading && documents.length === 0 ? (
@@ -77,12 +168,12 @@ export function DocumentList({
         </div>
       ) : documents.length === 0 ? (
         <p className="py-3 text-sm text-muted-foreground text-center">
-          Sube documentos para comenzar a chatear.
+          Sube documentos o pega texto para comenzar a chatear.
         </p>
       ) : (
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-0.5">
-            {documents.length} documento{documents.length !== 1 ? "s" : ""}
+            {documents.length} fuente{documents.length !== 1 ? "s" : ""}
           </p>
           {documents.map((doc) => (
             <div
@@ -113,7 +204,7 @@ export function DocumentList({
                   <StatusBadge status={doc.status} errorMessage={doc.errorMessage} />
                 </div>
                 {doc.status === "error" && doc.errorMessage && (
-                  <p className="text-xs text-destructive mt-1 truncate">
+                  <p className="text-xs text-destructive mt-1 line-clamp-2">
                     {doc.errorMessage}
                   </p>
                 )}

@@ -39,17 +39,20 @@ export function useDocuments(spaceId: string | null) {
     }
   }, [spaceId]);
 
-  // Poll for processing documents until all are ready (silent = no loading spinner)
+  // Poll only while processing docs exist – effect only re-runs when that flag changes
+  const hasProcessingDocs = documents.some((d) => d.status === "processing");
   useEffect(() => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    const hasProcessing = documents.some((d) => d.status === "processing");
-    if (hasProcessing) {
-      pollRef.current = setInterval(() => void fetchDocuments(true), 2000);
+    if (!hasProcessingDocs) {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      return;
+    }
+    if (!pollRef.current) {
+      pollRef.current = setInterval(() => void fetchDocuments(true), 2500);
     }
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
     };
-  }, [documents, fetchDocuments]);
+  }, [hasProcessingDocs, fetchDocuments]);
 
   useEffect(() => {
     if (spaceId) {
