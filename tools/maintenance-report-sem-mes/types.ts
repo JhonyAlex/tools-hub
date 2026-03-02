@@ -36,6 +36,7 @@ export interface AssetSummary {
   activo: string;
   totalHours: number;
   otCount: number;
+  recordCount: number;
 }
 
 export interface OTTypeSummary {
@@ -43,12 +44,14 @@ export interface OTTypeSummary {
   otCount: number;
   totalHours: number;
   avgHours: number;
+  recordCount: number;
 }
 
 export interface WorkerSummary {
   worker: string;
   otCount: number;
   totalHours: number;
+  recordCount: number;
 }
 
 export interface ReportAggregations {
@@ -65,6 +68,9 @@ export interface ReportAggregations {
 
 export interface AIReportContent {
   executiveSummary: string;
+  assetAnalysis: string;
+  otTypeAnalysis: string;
+  workerAnalysis: string;
   conclusions: string[];
   recommendations: string[];
 }

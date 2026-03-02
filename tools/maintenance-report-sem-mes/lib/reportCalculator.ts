@@ -55,12 +55,13 @@ export function calculateReport(
   const totalHours = enriched.reduce((sum, r) => sum + r.hours, 0);
 
   // 5. Aggregate by Asset
-  const assetMap = new Map<string, { hours: number; otSet: Set<string> }>();
+  const assetMap = new Map<string, { hours: number; otSet: Set<string>; count: number }>();
   for (const r of enriched) {
     const key = r.activo || "(Sin activo)";
-    const entry = assetMap.get(key) ?? { hours: 0, otSet: new Set() };
+    const entry = assetMap.get(key) ?? { hours: 0, otSet: new Set(), count: 0 };
     entry.hours += r.hours;
     entry.otSet.add(r.ordenDeTrabajo);
+    entry.count++;
     assetMap.set(key, entry);
   }
   const assets: AssetSummary[] = Array.from(assetMap.entries())
@@ -68,16 +69,18 @@ export function calculateReport(
       activo,
       totalHours: Math.round(data.hours * 100) / 100,
       otCount: data.otSet.size,
+      recordCount: data.count,
     }))
     .sort((a, b) => b.totalHours - a.totalHours);
 
   // 6. Aggregate by OT Type
-  const typeMap = new Map<string, { hours: number; otSet: Set<string> }>();
+  const typeMap = new Map<string, { hours: number; otSet: Set<string>; count: number }>();
   for (const r of enriched) {
     const key = r.tipoDeOT || "(Sin tipo)";
-    const entry = typeMap.get(key) ?? { hours: 0, otSet: new Set() };
+    const entry = typeMap.get(key) ?? { hours: 0, otSet: new Set(), count: 0 };
     entry.hours += r.hours;
     entry.otSet.add(r.ordenDeTrabajo);
+    entry.count++;
     typeMap.set(key, entry);
   }
   const otTypes: OTTypeSummary[] = Array.from(typeMap.entries())
@@ -89,16 +92,18 @@ export function calculateReport(
         data.otSet.size > 0
           ? Math.round((data.hours / data.otSet.size) * 100) / 100
           : 0,
+      recordCount: data.count,
     }))
     .sort((a, b) => b.otCount - a.otCount);
 
   // 7. Aggregate by Worker (transformed names)
-  const workerMap = new Map<string, { hours: number; otSet: Set<string> }>();
+  const workerMap = new Map<string, { hours: number; otSet: Set<string>; count: number }>();
   for (const r of enriched) {
     const key = r.workerName;
-    const entry = workerMap.get(key) ?? { hours: 0, otSet: new Set() };
+    const entry = workerMap.get(key) ?? { hours: 0, otSet: new Set(), count: 0 };
     entry.hours += r.hours;
     entry.otSet.add(r.ordenDeTrabajo);
+    entry.count++;
     workerMap.set(key, entry);
   }
   const workers: WorkerSummary[] = Array.from(workerMap.entries())
@@ -106,6 +111,7 @@ export function calculateReport(
       worker,
       otCount: data.otSet.size,
       totalHours: Math.round(data.hours * 100) / 100,
+      recordCount: data.count,
     }))
     .sort((a, b) => b.totalHours - a.totalHours);
 

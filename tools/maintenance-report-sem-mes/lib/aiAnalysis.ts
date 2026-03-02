@@ -23,7 +23,7 @@ async function callOpenRouter(
       model: MODEL,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.2,
-      max_tokens: 2000,
+      max_tokens: 3000,
     }),
   });
 
@@ -55,13 +55,13 @@ OTs únicas: ${aggregations.uniqueOTs}
 Horas totales: ${formatHours(aggregations.totalHours)} (${aggregations.totalHours.toFixed(2)}h)
 
 Top activos por horas:
-${topAssets.map((a) => `- ${a.activo}: ${formatHours(a.totalHours)} (${a.otCount} OTs)`).join("\n")}
+${topAssets.map((a) => `- ${a.activo}: ${formatHours(a.totalHours)}, ${a.otCount} OTs, ${a.recordCount} registros M.O.`).join("\n")}
 
 Tipos de OT:
-${aggregations.otTypes.map((t) => `- ${t.tipoDeOT}: ${t.otCount} OTs, ${formatHours(t.totalHours)}, media ${formatHours(t.avgHours)}`).join("\n")}
+${aggregations.otTypes.map((t) => `- ${t.tipoDeOT}: ${t.otCount} OTs, ${t.recordCount} registros M.O., ${formatHours(t.totalHours)}, media ${formatHours(t.avgHours)}`).join("\n")}
 
 Trabajadores:
-${aggregations.workers.map((w) => `- ${w.worker}: ${w.otCount} OTs, ${formatHours(w.totalHours)}`).join("\n")}
+${aggregations.workers.map((w) => `- ${w.worker}: ${w.otCount} OTs, ${w.recordCount} registros M.O., ${formatHours(w.totalHours)}`).join("\n")}
   `.trim();
 
   const prompt = `Eres un analista de mantenimiento industrial. A partir de los siguientes datos agregados de un informe ${periodLabel.toLowerCase()} de mano de obra, genera:
@@ -72,13 +72,22 @@ ${aggregations.workers.map((w) => `- ${w.worker}: ${w.otCount} OTs, ${formatHour
    - Tipo de mantenimiento predominante
    - Patrón o alerta más relevante detectada
 
-2. Exactamente 3 "Conclusiones clave" (frases concisas en viñetas)
+2. Un "Análisis de Activos" (2-3 líneas): análisis breve de los activos que más recursos consumen, patrones notables y posibles causas.
 
-3. Entre 2 y 4 "Recomendaciones prácticas" (accionables, en viñetas)
+3. Un "Análisis de Tipos de OT" (2-3 líneas): análisis de la distribución de tipos de mantenimiento, proporción correctivo vs preventivo, y qué indica sobre la estrategia de mantenimiento.
+
+4. Un "Análisis de Trabajadores" (2-3 líneas): análisis de la distribución de carga laboral, si hay desequilibrios, y observaciones sobre la asignación de personal.
+
+5. Exactamente 3 "Conclusiones clave" (frases concisas en viñetas)
+
+6. Entre 2 y 4 "Recomendaciones prácticas" (accionables, en viñetas)
 
 Responde SOLO con un JSON válido con esta estructura, sin texto adicional:
 {
   "executiveSummary": "texto del resumen (máx 6 líneas)",
+  "assetAnalysis": "análisis de activos (2-3 líneas)",
+  "otTypeAnalysis": "análisis de tipos de OT (2-3 líneas)",
+  "workerAnalysis": "análisis de trabajadores (2-3 líneas)",
   "conclusions": ["conclusión 1", "conclusión 2", "conclusión 3"],
   "recommendations": ["recomendación 1", "recomendación 2", ...]
 }
@@ -92,6 +101,9 @@ ${dataSummary}`;
   if (!jsonMatch) {
     return {
       executiveSummary: "No se pudo generar el resumen automáticamente.",
+      assetAnalysis: "",
+      otTypeAnalysis: "",
+      workerAnalysis: "",
       conclusions: [],
       recommendations: [],
     };
@@ -101,12 +113,18 @@ ${dataSummary}`;
     const parsed = JSON.parse(jsonMatch[0]) as AIReportContent;
     return {
       executiveSummary: parsed.executiveSummary ?? "",
+      assetAnalysis: parsed.assetAnalysis ?? "",
+      otTypeAnalysis: parsed.otTypeAnalysis ?? "",
+      workerAnalysis: parsed.workerAnalysis ?? "",
       conclusions: parsed.conclusions ?? [],
       recommendations: parsed.recommendations ?? [],
     };
   } catch {
     return {
       executiveSummary: "Error al procesar la respuesta de IA.",
+      assetAnalysis: "",
+      otTypeAnalysis: "",
+      workerAnalysis: "",
       conclusions: [],
       recommendations: [],
     };

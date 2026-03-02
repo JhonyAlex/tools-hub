@@ -9,15 +9,17 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  LabelList,
 } from "recharts";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Cpu, BarChart3 } from "lucide-react";
+import { Cpu, BarChart3, Brain } from "lucide-react";
 import { useTheme } from "@/core/providers/ThemeProvider";
-import type { AssetSummary } from "../types";
+import type { AssetSummary, AIReportContent } from "../types";
 import { formatHours } from "../lib/timeParser";
 
 interface AssetAnalysisProps {
   assets: AssetSummary[];
+  aiContent: AIReportContent | null;
 }
 
 const chartColors = {
@@ -25,7 +27,7 @@ const chartColors = {
   dark: { bar: "#60a5fa", barAlt: "#a78bfa", grid: "#374151", text: "#9ca3af" },
 };
 
-export function AssetAnalysis({ assets }: AssetAnalysisProps) {
+export function AssetAnalysis({ assets, aiContent }: AssetAnalysisProps) {
   const [mounted, setMounted] = useState(false);
   const { resolvedTheme } = useTheme();
   useEffect(() => setMounted(true), []);
@@ -56,7 +58,8 @@ export function AssetAnalysis({ assets }: AssetAnalysisProps) {
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-2 text-left font-medium text-muted-foreground">Activo</th>
                   <th className="px-4 py-2 text-right font-medium text-muted-foreground">Horas</th>
-                  <th className="px-4 py-2 text-right font-medium text-muted-foreground">N OTs</th>
+                  <th className="px-4 py-2 text-right font-medium text-muted-foreground">OTs</th>
+                  <th className="px-4 py-2 text-right font-medium text-muted-foreground">Reg. M.O.</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -70,6 +73,9 @@ export function AssetAnalysis({ assets }: AssetAnalysisProps) {
                       <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                         {a.otCount}
                       </span>
+                    </td>
+                    <td className="px-4 py-2 text-right text-muted-foreground">
+                      {a.recordCount}
                     </td>
                   </tr>
                 ))}
@@ -89,14 +95,15 @@ export function AssetAnalysis({ assets }: AssetAnalysisProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={Math.max(250, top10ByHours.length * 40)}>
+            <ResponsiveContainer width="100%" height={Math.max(250, top10ByHours.length * 45)}>
               <BarChart
                 data={top10ByHours.map((a) => ({
                   name: a.activo.length > 25 ? a.activo.slice(0, 25) + "..." : a.activo,
+                  fullName: a.activo,
                   hours: Math.round(a.totalHours * 100) / 100,
                 }))}
                 layout="vertical"
-                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+                margin={{ top: 5, right: 50, left: 10, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
                 <XAxis
@@ -108,7 +115,7 @@ export function AssetAnalysis({ assets }: AssetAnalysisProps) {
                   type="category"
                   dataKey="name"
                   tick={{ fill: colors.text, fontSize: 11 }}
-                  width={160}
+                  width={180}
                   axisLine={{ stroke: colors.grid }}
                 />
                 <Tooltip
@@ -120,15 +127,25 @@ export function AssetAnalysis({ assets }: AssetAnalysisProps) {
                   }}
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   formatter={(value: any) => [`${formatHours(Number(value))}`, "Horas"]}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  labelFormatter={(label: any, payload: any) => payload?.[0]?.payload?.fullName ?? label}
                 />
-                <Bar dataKey="hours" fill={colors.bar} radius={[0, 6, 6, 0]} maxBarSize={30} />
+                <Bar dataKey="hours" fill={colors.bar} radius={[0, 6, 6, 0]} maxBarSize={40}>
+                  <LabelList
+                    dataKey="hours"
+                    position="right"
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(v: any) => formatHours(Number(v))}
+                    style={{ fill: colors.text, fontSize: 10 }}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       )}
 
-      {/* Chart: OTs by asset */}
+      {/* Chart: OTs by asset (horizontal bars) */}
       {mounted && top10ByOT.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
@@ -138,27 +155,29 @@ export function AssetAnalysis({ assets }: AssetAnalysisProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={Math.max(250, top10ByOT.length * 45)}>
               <BarChart
                 data={top10ByOT.map((a) => ({
-                  name: a.activo.length > 15 ? a.activo.slice(0, 15) + "..." : a.activo,
+                  name: a.activo.length > 25 ? a.activo.slice(0, 25) + "..." : a.activo,
+                  fullName: a.activo,
                   ots: a.otCount,
                 }))}
-                margin={{ top: 5, right: 10, left: -10, bottom: 60 }}
+                layout="vertical"
+                margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
                 <XAxis
-                  dataKey="name"
-                  tick={{ fill: colors.text, fontSize: 10 }}
-                  axisLine={{ stroke: colors.grid }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis
+                  type="number"
                   tick={{ fill: colors.text, fontSize: 11 }}
                   axisLine={{ stroke: colors.grid }}
                   allowDecimals={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fill: colors.text, fontSize: 11 }}
+                  width={180}
+                  axisLine={{ stroke: colors.grid }}
                 />
                 <Tooltip
                   contentStyle={{
@@ -167,10 +186,32 @@ export function AssetAnalysis({ assets }: AssetAnalysisProps) {
                     borderRadius: 8,
                     fontSize: 12,
                   }}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  labelFormatter={(label: any, payload: any) => payload?.[0]?.payload?.fullName ?? label}
                 />
-                <Bar dataKey="ots" name="OTs" fill={colors.barAlt} radius={[6, 6, 0, 0]} maxBarSize={50} />
+                <Bar dataKey="ots" name="OTs" fill={colors.barAlt} radius={[0, 6, 6, 0]} maxBarSize={40}>
+                  <LabelList
+                    dataKey="ots"
+                    position="right"
+                    style={{ fill: colors.text, fontSize: 10 }}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Analysis */}
+      {aiContent?.assetAnalysis && (
+        <Card className="border-purple-200 bg-purple-50/30 dark:border-purple-800 dark:bg-purple-900/10">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-2">
+              <Brain className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {aiContent.assetAnalysis}
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}

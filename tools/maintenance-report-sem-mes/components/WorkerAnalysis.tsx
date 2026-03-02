@@ -10,15 +10,17 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  LabelList,
 } from "recharts";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Users, BarChart3 } from "lucide-react";
+import { Users, BarChart3, Brain } from "lucide-react";
 import { useTheme } from "@/core/providers/ThemeProvider";
-import type { WorkerSummary } from "../types";
+import type { WorkerSummary, AIReportContent } from "../types";
 import { formatHours } from "../lib/timeParser";
 
 interface WorkerAnalysisProps {
   workers: WorkerSummary[];
+  aiContent: AIReportContent | null;
 }
 
 const chartColors = {
@@ -26,7 +28,7 @@ const chartColors = {
   dark: { hours: "#4ade80", ots: "#60a5fa", grid: "#374151", text: "#9ca3af" },
 };
 
-export function WorkerAnalysis({ workers }: WorkerAnalysisProps) {
+export function WorkerAnalysis({ workers, aiContent }: WorkerAnalysisProps) {
   const [mounted, setMounted] = useState(false);
   const { resolvedTheme } = useTheme();
   useEffect(() => setMounted(true), []);
@@ -50,7 +52,8 @@ export function WorkerAnalysis({ workers }: WorkerAnalysisProps) {
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-4 py-2 text-left font-medium text-muted-foreground">Trabajador</th>
-                  <th className="px-4 py-2 text-right font-medium text-muted-foreground">N OTs</th>
+                  <th className="px-4 py-2 text-right font-medium text-muted-foreground">OTs</th>
+                  <th className="px-4 py-2 text-right font-medium text-muted-foreground">Reg. M.O.</th>
                   <th className="px-4 py-2 text-right font-medium text-muted-foreground">Horas Totales</th>
                 </tr>
               </thead>
@@ -64,6 +67,9 @@ export function WorkerAnalysis({ workers }: WorkerAnalysisProps) {
                       </span>
                     </td>
                     <td className="px-4 py-2 text-right text-muted-foreground">
+                      {w.recordCount}
+                    </td>
+                    <td className="px-4 py-2 text-right text-muted-foreground">
                       {formatHours(w.totalHours)}
                     </td>
                   </tr>
@@ -74,7 +80,7 @@ export function WorkerAnalysis({ workers }: WorkerAnalysisProps) {
         </CardContent>
       </Card>
 
-      {/* Chart */}
+      {/* Chart - horizontal layout */}
       {mounted && (
         <Card>
           <CardHeader className="pb-2">
@@ -84,32 +90,28 @@ export function WorkerAnalysis({ workers }: WorkerAnalysisProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={Math.max(300, workers.length * 55)}>
               <BarChart
                 data={workers.map((w) => ({
                   name: w.worker,
                   hours: Math.round(w.totalHours * 100) / 100,
                   ots: w.otCount,
                 }))}
-                margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
+                layout="vertical"
+                margin={{ top: 5, right: 50, left: 10, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
                 <XAxis
+                  type="number"
+                  tick={{ fill: colors.text, fontSize: 11 }}
+                  axisLine={{ stroke: colors.grid }}
+                />
+                <YAxis
+                  type="category"
                   dataKey="name"
                   tick={{ fill: colors.text, fontSize: 11 }}
+                  width={140}
                   axisLine={{ stroke: colors.grid }}
-                />
-                <YAxis
-                  yAxisId="left"
-                  tick={{ fill: colors.text, fontSize: 11 }}
-                  axisLine={{ stroke: colors.grid }}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  tick={{ fill: colors.text, fontSize: 11 }}
-                  axisLine={{ stroke: colors.grid }}
-                  allowDecimals={false}
                 />
                 <Tooltip
                   contentStyle={{
@@ -130,23 +132,49 @@ export function WorkerAnalysis({ workers }: WorkerAnalysisProps) {
                   iconSize={8}
                 />
                 <Bar
-                  yAxisId="left"
                   dataKey="hours"
                   name="Horas"
                   fill={colors.hours}
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={50}
-                />
+                  radius={[0, 6, 6, 0]}
+                  maxBarSize={40}
+                >
+                  <LabelList
+                    dataKey="hours"
+                    position="right"
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(v: any) => formatHours(Number(v))}
+                    style={{ fill: colors.text, fontSize: 10 }}
+                  />
+                </Bar>
                 <Bar
-                  yAxisId="right"
                   dataKey="ots"
                   name="OTs"
                   fill={colors.ots}
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={50}
-                />
+                  radius={[0, 6, 6, 0]}
+                  maxBarSize={40}
+                >
+                  <LabelList
+                    dataKey="ots"
+                    position="right"
+                    style={{ fill: colors.text, fontSize: 10 }}
+                  />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Analysis */}
+      {aiContent?.workerAnalysis && (
+        <Card className="border-purple-200 bg-purple-50/30 dark:border-purple-800 dark:bg-purple-900/10">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-2">
+              <Brain className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {aiContent.workerAnalysis}
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}

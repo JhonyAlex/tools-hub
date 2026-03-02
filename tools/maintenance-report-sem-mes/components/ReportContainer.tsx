@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef } from "react";
-import { Copy, Check, Loader2 } from "lucide-react";
+import { Copy, Check, Loader2, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -10,13 +10,34 @@ interface ReportContainerProps {
   onCopy: () => void;
   copying: boolean;
   copied: boolean;
+  onExportPDF?: () => void;
+  exportingPDF?: boolean;
 }
 
 export const ReportContainer = forwardRef<HTMLDivElement, ReportContainerProps>(
-  function ReportContainer({ children, onCopy, copying, copied }, ref) {
+  function ReportContainer(
+    { children, onCopy, copying, copied, onExportPDF, exportingPDF },
+    ref
+  ) {
     return (
       <div className="space-y-3">
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {onExportPDF && (
+            <Button
+              onClick={onExportPDF}
+              disabled={exportingPDF}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              {exportingPDF ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4" />
+              )}
+              {exportingPDF ? "Exportando..." : "Exportar PDF"}
+            </Button>
+          )}
           <Button
             onClick={onCopy}
             disabled={copying}

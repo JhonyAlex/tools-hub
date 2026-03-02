@@ -10,6 +10,7 @@ import {
   HardDrive,
   Sparkles,
   FileText,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import { parseCSV } from "../lib/csvParser";
 import { calculateReport } from "../lib/reportCalculator";
 import { useReportsStorage } from "../lib/useReportsStorage";
 import { useCopyReport } from "../lib/useCopyReport";
+import { usePDFExport } from "../lib/usePDFExport";
 import type {
   LaborRecord,
   ReportAggregations,
@@ -75,6 +77,7 @@ export function SemMesReportApp() {
   // Copy report
   const reportRef = useRef<HTMLDivElement>(null);
   const { copyAll, copying, copied } = useCopyReport(reportRef);
+  const { exportPDF, exporting } = usePDFExport(reportRef);
 
   // ──────────────────────────────────────────
   // Period change
@@ -285,8 +288,12 @@ export function SemMesReportApp() {
                     disabled={isAnalyzing}
                     className="gap-2 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white shadow-lg shadow-purple-500/20 transition-all hover:shadow-purple-500/30"
                   >
-                    <Brain className="h-4 w-4" />
-                    {isAnalyzing ? "Analizando con IA..." : "Analizar con IA"}
+                    {isAnalyzing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Brain className="h-4 w-4" />
+                    )}
+                    {isAnalyzing ? "Generando análisis IA..." : "Analizar con IA"}
                   </Button>
                 )}
                 {aiContent && (
@@ -309,20 +316,22 @@ export function SemMesReportApp() {
                 </Button>
               </div>
 
-              {/* Report container (copyable) */}
+              {/* Report container (copyable + PDF export) */}
               <ReportContainer
                 ref={reportRef}
                 onCopy={copyAll}
                 copying={copying}
                 copied={copied}
+                onExportPDF={() => exportPDF(periodType, dateRange)}
+                exportingPDF={exporting}
               >
                 <ExecutiveSummary
                   aggregations={aggregations}
                   aiContent={aiContent}
                 />
-                <AssetAnalysis assets={aggregations.assets} />
-                <OTTypeAnalysis otTypes={aggregations.otTypes} />
-                <WorkerAnalysis workers={aggregations.workers} />
+                <AssetAnalysis assets={aggregations.assets} aiContent={aiContent} />
+                <OTTypeAnalysis otTypes={aggregations.otTypes} aiContent={aiContent} />
+                <WorkerAnalysis workers={aggregations.workers} aiContent={aiContent} />
                 {aiContent && <ConclusionsPanel aiContent={aiContent} />}
               </ReportContainer>
             </div>
