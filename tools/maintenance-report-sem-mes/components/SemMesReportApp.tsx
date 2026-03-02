@@ -127,10 +127,14 @@ export function SemMesReportApp() {
   );
 
   // ──────────────────────────────────────────
-  // AI Analysis
+  // AI Analysis (cancelable)
   // ──────────────────────────────────────────
+  const abortRef = useRef<AbortController | null>(null);
+
   const handleAIAnalysis = async () => {
     if (!aggregations) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
     setIsAnalyzing(true);
     setError(null);
     try {
@@ -138,6 +142,7 @@ export function SemMesReportApp() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ aggregations }),
+        signal: controller.signal,
       });
       if (!res.ok) {
         const errText = await res.text();
@@ -146,11 +151,20 @@ export function SemMesReportApp() {
       const data = await res.json();
       setAiContent(data.aiContent);
     } catch (e) {
-      setError(`Error en análisis IA: ${String(e)}`);
+      if ((e as Error).name !== "AbortError") {
+        setError(`Error en análisis IA: ${String(e)}`);
+      }
     } finally {
+      abortRef.current = null;
       setIsAnalyzing(false);
     }
   };
+
+  const handleCancelAnalysis = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsAnalyzing(false);
+  }, []);
 
   // ──────────────────────────────────────────
   // Save report
@@ -223,7 +237,7 @@ export function SemMesReportApp() {
   return (
     <div className="space-y-6 animate-in relative">
       {/* AI Analysis Overlay */}
-      {isAnalyzing && <AIAnalysisOverlay />}
+      {isAnalyzing && <AIAnalysisOverlay onCancel={handleCancelAnalysis} />}
       {/* Header */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
@@ -481,30 +495,37 @@ const AI_STEPS = [
 // a "completed" state while the AI is still working.
 const LAST_STEP = AI_STEPS.length - 1;
 
-function AIAnalysisOverlay() {
+function AIAnalysisOverlay({ onCancel }: { onCancel: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
 
+  // Block body scroll while overlay is mounted
   useEffect(() => {
-    // Advance steps 1 and 2 on timers; step 3 (last) is reached
-    // but stays as "active/spinning" indefinitely until unmount.
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     for (let i = 1; i <= LAST_STEP; i++) {
-      // Stagger: 3s, 8s, 15s — last step takes longer to feel realistic
       const delay = i < LAST_STEP ? i * 4000 : 12000;
       timers.push(setTimeout(() => setCurrentStep(i), delay));
     }
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  // Progress percentage: caps at 90% on the last step so it never
-  // looks "done" while the AI is still processing.
   const progress =
     currentStep < LAST_STEP
       ? ((currentStep + 1) / AI_STEPS.length) * 100
       : 90;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0 }}
+    >
       <div className="w-full max-w-md mx-4 rounded-2xl border border-border bg-background p-8 shadow-2xl space-y-6">
         {/* Header */}
         <div className="flex flex-col items-center gap-3">
@@ -573,6 +594,18 @@ function AIAnalysisOverlay() {
             className="h-full rounded-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-1000 ease-out"
             style={{ width: `${progress}%` }}
           />
+        </div>
+
+        {/* Cancel button */}
+        <div className="flex justify-center pt-2">
+          <Button
+            onClick={onCancel}
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            Cancelar análisis
+          </Button>
         </div>
       </div>
     </div>
