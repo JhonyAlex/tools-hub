@@ -1,3 +1,5 @@
+"use client";
+
 import { LetterText } from "lucide-react";
 import { ToolPageLayout } from "@/core/components/ToolPageLayout";
 import { TextCounterApp } from "@/tools/text-counter";
