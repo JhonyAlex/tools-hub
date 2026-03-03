@@ -195,7 +195,7 @@ export function Sidebar({ categories, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 border-r bg-muted/30 md:flex flex-col transition-all duration-300 ease-in-out h-screen sticky top-0",
+        "hidden shrink-0 border-r bg-muted/30 md:flex flex-col transition-all duration-300 ease-in-out h-full",
         collapsed ? "w-16" : "w-64",
         className
       )}

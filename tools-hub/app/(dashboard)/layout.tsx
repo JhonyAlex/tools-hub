@@ -16,9 +16,9 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <ToolProvider>
-        <div className="flex min-h-screen flex-col bg-background">
+        <div className="flex h-screen flex-col bg-background">
           <Header />
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 min-h-0">
             <Suspense fallback={<div className="hidden w-16 shrink-0 border-r bg-muted/20 md:block" />}>
               <Sidebar categories={categories} />
             </Suspense>
