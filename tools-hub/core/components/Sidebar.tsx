@@ -235,8 +235,12 @@ export function Sidebar({ categories, className }: SidebarProps) {
           collapsed={collapsed}
           pathname={pathname}
         />
-        <SidebarFooter collapsed={collapsed} toggle={toggle} />
       </nav>
+      
+      {/* Footer - Always at bottom */}
+      <div className="shrink-0 p-2 border-t border-border/50 bg-muted/30">
+        <SidebarFooter collapsed={collapsed} toggle={toggle} />
+      </div>
     </aside>
   );
 }
@@ -379,7 +383,7 @@ interface SidebarFooterProps {
 
 function SidebarFooter({ collapsed, toggle }: SidebarFooterProps) {
   return (
-    <div className="mt-auto pt-2 border-t border-border/50">
+    <div className="space-y-2">
       {/* Toggle Button */}
       <button
         onClick={toggle}

@@ -36,9 +36,9 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
-        {/* Left section: Mobile menu + Logo/Tool info */}
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex h-16 items-center gap-4 px-4 sm:px-6">
+        {/* Left section: Mobile menu + Logo */}
+        <div className="flex items-center gap-2 shrink-0 min-w-0">
           {/* Mobile Menu - Only visible on mobile */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -56,37 +56,32 @@ export function Header() {
             </SheetContent>
           </Sheet>
 
-          {/* Dynamic Zone: Tool info or Logo */}
-          {toolInfo ? (
-            <div className="flex items-center gap-3 min-w-0">
-              {/* Breadcrumbs */}
-              <nav className="hidden sm:flex items-center gap-1 text-sm text-muted-foreground shrink-0">
-                <Link
-                  href="/"
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  <Home className="h-3.5 w-3.5" />
-                </Link>
-                {toolInfo.category && (
-                  <div className="flex items-center gap-1">
-                    <ChevronRight className="h-3.5 w-3.5" />
-                    <span className="text-muted-foreground">
-                      {CATEGORY_LABELS[toolInfo.category]}
-                    </span>
-                  </div>
-                )}
-                <ChevronRight className="h-3.5 w-3.5" />
-                <span className="text-foreground font-medium truncate max-w-[150px]">
-                  {toolInfo.title}
-                </span>
-              </nav>
+          {/* Logo - Always visible */}
+          <Link
+            href="/"
+            className="group flex items-center gap-2.5 font-semibold transition-opacity hover:opacity-80"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-primary/30">
+              <Wrench className="h-4.5 w-4.5" />
+            </div>
+            <div className="flex flex-col hidden sm:flex">
+              <span className="text-base font-bold leading-tight">Tools Hub</span>
+              <span className="text-[10px] text-muted-foreground leading-tight">
+                Panel de herramientas
+              </span>
+            </div>
+          </Link>
+        </div>
 
-              {/* Tool Title + Icon - Mobile friendly */}
-              <div className="flex items-center gap-2.5 min-w-0">
+        {/* Center: Tool Title or Command Bar */}
+        <div className="flex-1 flex justify-center min-w-0">
+          {toolInfo ? (
+            <div className="flex flex-col items-center text-center min-w-0 max-w-full">
+              <div className="flex items-center gap-2 min-w-0">
                 {toolInfo.icon && (
                   <div
                     className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-lg border shrink-0",
+                      "flex h-7 w-7 items-center justify-center rounded-lg border shrink-0",
                       toolInfo.category
                         ? CATEGORY_COLORS[toolInfo.category]?.split(" ")[0]
                         : "bg-primary/10"
@@ -94,7 +89,7 @@ export function Header() {
                   >
                     <toolInfo.icon
                       className={cn(
-                        "h-4 w-4",
+                        "h-3.5 w-3.5",
                         toolInfo.category
                           ? CATEGORY_COLORS[toolInfo.category]?.split(" ")[1]
                           : "text-primary"
@@ -102,53 +97,40 @@ export function Header() {
                     />
                   </div>
                 )}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-base font-semibold tracking-tight truncate">
-                      {toolInfo.title}
-                    </h1>
-                    {toolInfo.beta && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 text-[10px] px-1.5 py-0"
-                      >
-                        Beta
-                      </Badge>
-                    )}
-                  </div>
-                  {toolInfo.description && (
-                    <p className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-[400px]">
-                      {toolInfo.description}
-                    </p>
-                  )}
-                </div>
+                <h1 className="text-base font-semibold tracking-tight truncate">
+                  {toolInfo.title}
+                </h1>
+                {toolInfo.beta && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 text-[10px] px-1.5 py-0 shrink-0"
+                  >
+                    Beta
+                  </Badge>
+                )}
               </div>
+              {toolInfo.description && (
+                <p className="text-xs text-muted-foreground truncate max-w-[300px] lg:max-w-[500px]">
+                  {toolInfo.description}
+                </p>
+              )}
             </div>
           ) : (
-            <Link
-              href="/"
-              className="group flex items-center gap-2.5 font-semibold transition-opacity hover:opacity-80"
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-primary/30">
-                <Wrench className="h-4.5 w-4.5" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-base font-bold leading-tight">Tools Hub</span>
-                <span className="text-[10px] text-muted-foreground leading-tight hidden sm:block">
-                  Panel de herramientas
-                </span>
-              </div>
-            </Link>
+            <div className="w-full max-w-md hidden md:block">
+              <CommandBar className="w-full" />
+            </div>
           )}
-        </div>
-
-        {/* Center: Command Bar - Hidden on mobile */}
-        <div className="flex-1 max-w-md mx-auto hidden lg:block">
-          <CommandBar className="w-full" />
         </div>
 
         {/* Right section */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Command Bar - Show when tool is active */}
+          {toolInfo && (
+            <div className="hidden lg:block">
+              <CommandBar className="w-48" />
+            </div>
+          )}
+
           {/* Badge */}
           <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary">
             <Sparkles className="h-3.5 w-3.5" />

@@ -22,10 +22,8 @@ export default function DashboardLayout({
             <Suspense fallback={<div className="hidden w-16 shrink-0 border-r bg-muted/20 md:block" />}>
               <Sidebar categories={categories} />
             </Suspense>
-            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-              <div className="mx-auto max-w-6xl">
-                {children}
-              </div>
+            <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+              {children}
             </main>
           </div>
         </div>
