@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Header } from "@/core/components/Header";
 import { Sidebar } from "@/core/components/Sidebar";
 import { getCategories } from "@/core/registry";
-import { SidebarProvider } from "@/core/providers";
+import { SidebarProvider, ToolProvider } from "@/core/providers";
 
 export const dynamic = "force-dynamic";
 
@@ -15,19 +15,21 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen flex-col bg-background">
-        <Header />
-        <div className="flex flex-1 overflow-hidden">
-          <Suspense fallback={<div className="hidden w-16 shrink-0 border-r bg-muted/20 md:block" />}>
-            <Sidebar categories={categories} />
-          </Suspense>
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-            <div className="mx-auto max-w-6xl">
-              {children}
-            </div>
-          </main>
+      <ToolProvider>
+        <div className="flex min-h-screen flex-col bg-background">
+          <Header />
+          <div className="flex flex-1 overflow-hidden">
+            <Suspense fallback={<div className="hidden w-16 shrink-0 border-r bg-muted/20 md:block" />}>
+              <Sidebar categories={categories} />
+            </Suspense>
+            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+              <div className="mx-auto max-w-6xl">
+                {children}
+              </div>
+            </main>
+          </div>
         </div>
-      </div>
+      </ToolProvider>
     </SidebarProvider>
   );
 }

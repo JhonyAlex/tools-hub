@@ -44,7 +44,7 @@ export function TextCounterApp() {
     >
       <div className="space-y-6">
         {/* Text Input */}
-        <ToolSection variant="card" className="p-0">
+        <ToolSection variant="subtle" className="p-0">
           <div className="relative">
             <textarea
               className="w-full min-h-[250px] bg-transparent p-5 text-sm leading-relaxed resize-y focus:outline-none"

@@ -19,6 +19,7 @@ const widthClasses = {
 /**
  * ToolLayout - Standard two-column layout for tools
  * Provides a consistent structure with sidebar (inputs/config) and main area (results)
+ * Minimalist design: no rigid boxes, visual grouping by proximity
  */
 export function ToolLayout({
   sidebar,
@@ -30,7 +31,7 @@ export function ToolLayout({
   return (
     <div
       className={cn(
-        "grid gap-6",
+        "grid gap-8",
         sidebar
           ? `grid-cols-1 lg:grid-cols-[${reverse ? "1fr_" : ""}${widthClasses[sidebarWidth]}${reverse ? "" : "_1fr"}]`
           : "grid-cols-1",
@@ -48,13 +49,13 @@ export function ToolLayout({
       }
     >
       {sidebar && !reverse && (
-        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+        <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
           {sidebar}
         </aside>
       )}
-      <main className="min-w-0 space-y-4">{children}</main>
+      <main className="min-w-0 space-y-6">{children}</main>
       {sidebar && reverse && (
-        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+        <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start">
           {sidebar}
         </aside>
       )}
@@ -67,26 +68,27 @@ interface ToolSectionProps {
   description?: string;
   children: React.ReactNode;
   className?: string;
-  variant?: "default" | "card" | "ghost";
+  variant?: "default" | "subtle" | "ghost";
   actions?: React.ReactNode;
 }
 
 /**
  * ToolSection - Container for sections within a tool
+ * Minimalist: no borders, subtle backgrounds only when needed
  */
 export function ToolSection({
   title,
   description,
   children,
   className,
-  variant = "card",
+  variant = "default",
   actions,
 }: ToolSectionProps) {
   return (
     <div
       className={cn(
         "rounded-xl",
-        variant === "card" && "border bg-card p-5",
+        variant === "subtle" && "bg-muted/20 p-5",
         variant === "ghost" && "p-2",
         variant === "default" && "",
         className
@@ -94,9 +96,11 @@ export function ToolSection({
     >
       {(title || description || actions) && (
         <div className="mb-4 flex items-start justify-between gap-4">
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {title && (
-              <h3 className="text-base font-semibold tracking-tight">{title}</h3>
+              <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                {title}
+              </h3>
             )}
             {description && (
               <p className="text-sm text-muted-foreground">{description}</p>
@@ -120,6 +124,7 @@ interface ToolInputPanelProps {
 
 /**
  * ToolInputPanel - Sidebar panel for inputs and configuration
+ * Minimalist: subtle background to differentiate from output, no heavy borders
  */
 export function ToolInputPanel({
   title,
@@ -131,14 +136,14 @@ export function ToolInputPanel({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card overflow-hidden",
+        "rounded-xl bg-muted/15 overflow-hidden",
         className
       )}
     >
       {(title || description) && (
-        <div className="border-b bg-muted/30 px-4 py-3">
+        <div className="px-4 py-3 border-b border-border/30">
           {title && (
-            <h3 className="text-sm font-semibold">{title}</h3>
+            <h3 className="text-sm font-medium text-foreground">{title}</h3>
           )}
           {description && (
             <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
@@ -147,7 +152,9 @@ export function ToolInputPanel({
       )}
       <div className="p-4 space-y-4">{children}</div>
       {footer && (
-        <div className="border-t bg-muted/30 px-4 py-3">{footer}</div>
+        <div className="border-t border-border/30 bg-muted/10 px-4 py-3">
+          {footer}
+        </div>
       )}
     </div>
   );
@@ -167,6 +174,7 @@ interface ToolOutputPanelProps {
 
 /**
  * ToolOutputPanel - Main panel for results and output
+ * Minimalist: no background, clean separation by spacing and typography
  */
 export function ToolOutputPanel({
   title,
@@ -180,28 +188,27 @@ export function ToolOutputPanel({
   emptyDescription,
 }: ToolOutputPanelProps) {
   return (
-    <div
-      className={cn(
-        "rounded-xl border bg-card overflow-hidden",
-        className
-      )}
-    >
+    <div className={cn("rounded-xl overflow-hidden", className)}>
       {(title || description || actions) && (
-        <div className="flex items-center justify-between border-b bg-muted/30 px-5 py-4">
+        <div className="flex items-center justify-between px-1 py-3 mb-2">
           <div>
-            {title && <h3 className="text-base font-semibold">{title}</h3>}
+            {title && (
+              <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+            )}
             {description && (
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {description}
+              </p>
             )}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
       )}
-      <div className="p-5">
+      <div className="min-h-0">
         {empty ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="flex flex-col items-center justify-center py-16 text-center">
             {emptyIcon && (
-              <div className="mb-4 rounded-2xl bg-muted p-4">{emptyIcon}</div>
+              <div className="mb-4 rounded-2xl bg-muted/30 p-4">{emptyIcon}</div>
             )}
             {emptyTitle && (
               <h4 className="text-sm font-medium text-foreground">
