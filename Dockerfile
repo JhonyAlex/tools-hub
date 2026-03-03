@@ -4,14 +4,14 @@ WORKDIR /app
 
 # --- Dependencies ---
 FROM base AS deps
-COPY package.json package-lock.json* ./
+COPY tools-hub/package.json tools-hub/package-lock.json* ./
 RUN npm ci
 
 # --- Build ---
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY tools-hub .
 
 RUN ./node_modules/.bin/prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -32,7 +32,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
+COPY entrypoint.sh ./entrypoint.sh
 
 RUN chmod +x ./entrypoint.sh
 
