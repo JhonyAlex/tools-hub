@@ -4,6 +4,8 @@ import { Sidebar } from "@/core/components/Sidebar";
 import { getCategories } from "@/core/registry";
 import { SidebarProvider } from "@/core/providers";
 
+export const dynamic = "force-dynamic";
+
 export default function DashboardLayout({
   children,
 }: {
