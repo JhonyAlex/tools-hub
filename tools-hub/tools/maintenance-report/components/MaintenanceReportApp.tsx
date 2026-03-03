@@ -163,36 +163,21 @@ export function MaintenanceReportApp() {
   // ──────────────────────────────────────────
   return (
     <div className="space-y-6 animate-in">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20">
-            <BarChart2 className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Reporte de Mantenimiento</h1>
-            <p className="text-sm text-muted-foreground">
-              Analiza y gestiona las órdenes de trabajo
-            </p>
-          </div>
-        </div>
-
-        {/* TABS */}
-        <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
-          <TabButton
-            label="Nuevo análisis"
-            icon={<BarChart2 className="h-4 w-4" />}
-            active={tab === "analyze"}
-            onClick={() => setTab("analyze")}
-          />
-          <TabButton
-            label="Historial"
-            icon={<History className="h-4 w-4" />}
-            active={tab === "history"}
-            onClick={() => setTab("history")}
-            badge={savedReports.length > 0 ? savedReports.length : undefined}
-          />
-        </div>
+      {/* TABS */}
+      <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
+        <TabButton
+          label="Nuevo análisis"
+          icon={<BarChart2 className="h-4 w-4" />}
+          active={tab === "analyze"}
+          onClick={() => setTab("analyze")}
+        />
+        <TabButton
+          label="Historial"
+          icon={<History className="h-4 w-4" />}
+          active={tab === "history"}
+          onClick={() => setTab("history")}
+          badge={savedReports.length > 0 ? savedReports.length : undefined}
+        />
       </div>
 
       {/* localStorage notice */}

@@ -209,10 +209,10 @@ export function Sidebar({ categories, className }: SidebarProps) {
       {/* Flyout overlay when collapsed and hovered */}
       {collapsed && flyoutOpen && (
         <div
-          className="absolute left-0 top-0 h-full w-64 bg-background border-r shadow-xl z-40 animate-in slide-in-from-left duration-200"
+          className="absolute left-0 top-0 h-full w-64 bg-background border-r shadow-xl z-40 animate-in slide-in-from-left duration-200 flex flex-col"
           onMouseEnter={() => setFlyoutOpen(true)}
         >
-          <nav className="flex flex-col h-full p-2">
+          <nav className="flex-1 overflow-y-auto p-2">
             <SidebarContent
               sortedCategories={sortedCategories}
               isHomeActive={isHomeActive}
@@ -221,7 +221,7 @@ export function Sidebar({ categories, className }: SidebarProps) {
               pathname={pathname}
             />
           </nav>
-          <div className="shrink-0 p-2 border-t border-border/50 bg-background">
+          <div className="shrink-0 p-2 border-t border-border/50 bg-background mt-auto">
             <SidebarFooter collapsed={false} toggle={toggle} />
           </div>
         </div>
@@ -238,8 +238,8 @@ export function Sidebar({ categories, className }: SidebarProps) {
         />
       </nav>
       
-      {/* Footer - Always visible at bottom (sticky) */}
-      <div className="shrink-0 p-2 border-t border-border/50 bg-muted/30">
+      {/* Footer - Always visible at bottom, aligned to screen edge */}
+      <div className="shrink-0 p-2 border-t border-border/50 bg-muted/30 mt-auto">
         <SidebarFooter collapsed={collapsed} toggle={toggle} />
       </div>
     </aside>

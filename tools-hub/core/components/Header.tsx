@@ -116,7 +116,7 @@ export function Header() {
               )}
             </div>
           ) : (
-            <div className="w-full max-w-md hidden md:block">
+            <div className="w-full max-w-xl hidden md:block">
               <CommandBar className="w-full" />
             </div>
           )}
@@ -126,8 +126,8 @@ export function Header() {
         <div className="flex items-center gap-2 shrink-0">
           {/* Command Bar - Show when tool is active */}
           {toolInfo && (
-            <div className="hidden lg:block">
-              <CommandBar className="w-48" />
+            <div className="hidden lg:block w-64">
+              <CommandBar className="w-full" />
             </div>
           )}
 

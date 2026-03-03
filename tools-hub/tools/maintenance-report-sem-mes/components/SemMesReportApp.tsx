@@ -239,36 +239,22 @@ export function SemMesReportApp() {
     <div className="space-y-6 animate-in relative">
       {/* AI Analysis Overlay */}
       {isAnalyzing && <AIAnalysisOverlay onCancel={handleCancelAnalysis} />}
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20">
-            <CalendarRange className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Reporte Semanal/Mensual</h1>
-            <p className="text-sm text-muted-foreground">
-              Mano de obra · Análisis por período
-            </p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
-          <TabButton
-            label="Nuevo informe"
-            icon={<CalendarRange className="h-4 w-4" />}
-            active={tab === "analyze"}
-            onClick={() => setTab("analyze")}
-          />
-          <TabButton
-            label="Historial"
-            icon={<History className="h-4 w-4" />}
-            active={tab === "history"}
-            onClick={() => setTab("history")}
-            badge={savedReports.length > 0 ? savedReports.length : undefined}
-          />
-        </div>
+      
+      {/* Tabs */}
+      <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/30 p-1 w-fit">
+        <TabButton
+          label="Nuevo informe"
+          icon={<CalendarRange className="h-4 w-4" />}
+          active={tab === "analyze"}
+          onClick={() => setTab("analyze")}
+        />
+        <TabButton
+          label="Historial"
+          icon={<History className="h-4 w-4" />}
+          active={tab === "history"}
+          onClick={() => setTab("history")}
+          badge={savedReports.length > 0 ? savedReports.length : undefined}
+        />
       </div>
 
       {/* localStorage notice */}
