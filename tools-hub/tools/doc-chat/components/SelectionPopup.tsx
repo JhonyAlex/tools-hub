@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { Sparkles, AlignLeft, MessageCircle } from "lucide-react";
+import { Sparkles, AlignLeft, PenLine } from "lucide-react";
 import { SELECTION_ACTIONS } from "../types";
 import type { SelectionAction } from "../types";
 
 const ACTION_ICONS: Record<SelectionAction["type"], React.ReactNode> = {
     explain: <Sparkles className="h-3.5 w-3.5" />,
     summarize: <AlignLeft className="h-3.5 w-3.5" />,
-    query: <MessageCircle className="h-3.5 w-3.5" />,
+    rewrite: <PenLine className="h-3.5 w-3.5" />,
 };
 
 interface SelectionPopupProps {

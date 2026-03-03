@@ -132,18 +132,19 @@ export async function POST(
 
 REGLAS:
 ${hasDocContext
-  ? `1. Responde principalmente con información del CONTEXTO DE DOCUMENTOS.
+            ? `1. Responde principalmente con información del CONTEXTO DE DOCUMENTOS.
 2. Cita el documento fuente cuando uses información de él: "(Fuente: [nombre del doc])".
 3. Si la información no está en los documentos${hasWebContext ? " pero sí en el contexto web, usa el contexto web e indícalo con \"(Fuente: Web)\"" : ", di exactamente: \"No encontré esa información en los documentos de este espacio.\""}.
 4. NO inventes información ni uses conocimiento propio que no aparezca en los contextos proporcionados.`
-  : hasWebContext
-  ? `1. No hay documentos relevantes en el espacio para esta pregunta. Responde usando el CONTEXTO WEB proporcionado.
+            : hasWebContext
+              ? `1. No hay documentos relevantes en el espacio para esta pregunta. Responde usando el CONTEXTO WEB proporcionado.
 2. Indica siempre "(Fuente: Web)" cuando uses información web.
 3. NO inventes información que no aparezca en el contexto web.`
-  : `1. No hay documentos en este espacio ni contexto web disponible.
+              : `1. No hay documentos en este espacio ni contexto web disponible.
 2. Responde EXACTAMENTE: "No encontré esa información en los documentos de este espacio."`
-}
+          }
 5. Sé directo, claro y conciso. Responde en el idioma de la pregunta del usuario.
+6. Usa formato Markdown para estructurar tus respuestas: **negritas** para énfasis, listas con viñetas, encabezados cuando sea apropiado, y párrafos bien separados. Esto mejora la legibilidad.
 
 ${hasDocContext ? `CONTEXTO DE DOCUMENTOS:\n${docContext}` : ""}${hasWebContext ? `\n\nCONTEXTO WEB (búsqueda en tiempo real):\n${webContext}` : ""}`.trim();
 

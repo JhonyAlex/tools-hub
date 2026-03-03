@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Send, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useDocChat } from "../hooks/useDocChat";
 import { ViewerPanel } from "./ViewerPanel";
 import { ChatPanel } from "./ChatPanel";
@@ -43,21 +43,6 @@ export function DocChatApp() {
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Action bar */}
-            {session && (
-                <div className="flex items-center justify-end gap-2">
-                    <button
-                        onClick={handleExportDocument}
-                        className="flex items-center gap-2 rounded-md border border-border/50 bg-background px-3
-                       py-1.5 text-sm font-medium text-muted-foreground
-                       transition-colors hover:bg-muted hover:text-foreground"
-                    >
-                        <Send className="h-3.5 w-3.5" />
-                        Llevar a AurisLM
-                    </button>
-                </div>
-            )}
-
             {/* Error banner */}
             {error && (
                 <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -77,6 +62,7 @@ export function DocChatApp() {
                         isLoading={isUploading}
                         onSelectionAction={handleSelectionAction}
                         onFileUpload={uploadFile}
+                        onExportDocument={session ? handleExportDocument : undefined}
                     />
                 </div>
 

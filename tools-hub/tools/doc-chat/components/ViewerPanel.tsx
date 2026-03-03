@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { FileText, Upload } from "lucide-react";
+import { FileText, Upload, Send } from "lucide-react";
 import { useTextSelection } from "../hooks/useTextSelection";
 import { SelectionPopup } from "./SelectionPopup";
 
@@ -12,6 +12,7 @@ interface ViewerPanelProps {
     isLoading: boolean;
     onSelectionAction: (instruction: string, selectedText: string) => void;
     onFileUpload: (file: File) => void;
+    onExportDocument?: () => void;
 }
 
 export function ViewerPanel({
@@ -21,6 +22,7 @@ export function ViewerPanel({
     isLoading,
     onSelectionAction,
     onFileUpload,
+    onExportDocument,
 }: ViewerPanelProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,12 +100,23 @@ export function ViewerPanel({
                 <div className="flex items-center gap-2 border-b border-border/40 bg-muted/20 px-4 py-2.5">
                     <FileText className="h-4 w-4 text-muted-foreground" />
                     <span className="truncate text-sm font-medium">{fileName}</span>
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="ml-auto text-xs text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                        Cambiar archivo
-                    </button>
+                    <div className="ml-auto flex items-center gap-2">
+                        {onExportDocument && (
+                            <button
+                                onClick={onExportDocument}
+                                className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                                <Send className="h-3 w-3" />
+                                Llevar a AurisLM
+                            </button>
+                        )}
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                            Cambiar archivo
+                        </button>
+                    </div>
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -131,12 +144,23 @@ export function ViewerPanel({
             <div className="flex items-center gap-2 border-b border-border/40 bg-muted/20 px-4 py-2.5">
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 <span className="truncate text-sm font-medium">{fileName}</span>
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="ml-auto text-xs text-muted-foreground transition-colors hover:text-foreground"
-                >
-                    Cambiar archivo
-                </button>
+                <div className="ml-auto flex items-center gap-2">
+                    {onExportDocument && (
+                        <button
+                            onClick={onExportDocument}
+                            className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                            <Send className="h-3 w-3" />
+                            Llevar a AurisLM
+                        </button>
+                    )}
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        Cambiar archivo
+                    </button>
+                </div>
                 <input
                     ref={fileInputRef}
                     type="file"

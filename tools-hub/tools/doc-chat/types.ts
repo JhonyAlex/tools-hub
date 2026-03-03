@@ -19,7 +19,7 @@ export interface DocChatMessageData {
 }
 
 export interface SelectionAction {
-  type: "explain" | "summarize" | "query";
+  type: "explain" | "summarize" | "rewrite";
   label: string;
   instruction: string;
 }
@@ -42,8 +42,8 @@ export const SELECTION_ACTIONS: SelectionAction[] = [
     instruction: "Resume de forma concisa el siguiente fragmento del documento:",
   },
   {
-    type: "query",
-    label: "Consultar",
-    instruction: "Responde sobre el siguiente fragmento del documento:",
+    type: "rewrite",
+    label: "Reescribir",
+    instruction: "Reescribe el siguiente texto de forma más clara, profesional y bien estructurada:",
   },
 ];

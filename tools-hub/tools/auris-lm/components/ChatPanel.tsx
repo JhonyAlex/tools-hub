@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Send,
   Square,
@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SourcesPanel } from "./SourcesPanel";
+import { MarkdownRenderer } from "@/tools/doc-chat/components/MarkdownRenderer";
 import type { ChatMessage } from "../lib/useChat";
 
 interface ChatPanelProps {
@@ -30,6 +31,13 @@ interface ChatPanelProps {
 
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const isUser = msg.role === "user";
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(msg.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   return (
     <div
       className={cn(
@@ -53,17 +61,30 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
       <div className={cn("flex-1 min-w-0", isUser && "flex flex-col items-end")}>
         <div
           className={cn(
-            "rounded-2xl px-5 py-3 text-sm whitespace-pre-wrap leading-relaxed shadow-sm",
+            "rounded-2xl px-5 py-3 text-sm leading-relaxed shadow-sm",
             isUser
-              ? "bg-primary text-primary-foreground rounded-tr-none"
+              ? "bg-primary text-primary-foreground rounded-tr-none whitespace-pre-wrap"
               : "bg-card border text-foreground rounded-tl-none"
           )}
         >
-          {msg.content}
+          {isUser ? msg.content : <MarkdownRenderer content={msg.content} />}
           {msg.isStreaming && (
             <span className="inline-block ml-1 animate-pulse font-bold text-primary">|</span>
           )}
         </div>
+        {/* Actions – only for completed assistant messages */}
+        {!isUser && !msg.isStreaming && msg.content && (
+          <div className="mt-1.5 flex items-center gap-1">
+            <button
+              onClick={() => void handleCopy()}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+              title="Copiar respuesta"
+            >
+              {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+              <span>{copied ? "Copiado" : "Copiar"}</span>
+            </button>
+          </div>
+        )}
         {/* Sources – only for assistant messages */}
         {!isUser && (msg.sources?.length ?? 0) > 0 && (
           <div className="mt-2 w-full">
@@ -130,7 +151,7 @@ export function ChatPanel({
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Button
             size="sm"
@@ -146,7 +167,7 @@ export function ChatPanel({
             <Globe className="size-3.5" />
             <span className="hidden sm:inline">{webSearch ? "Web activa" : "Búsqueda web"}</span>
           </Button>
-          
+
           {messages.length > 0 && (
             <Button
               size="icon"
@@ -194,7 +215,7 @@ export function ChatPanel({
               Sube documentos para activar las respuestas basadas en contenido.
             </div>
           )}
-          
+
           <div className="relative group transition-all">
             <textarea
               ref={inputRef}
@@ -216,7 +237,7 @@ export function ChatPanel({
                 "min-h-[56px] max-h-[200px]"
               )}
             />
-            
+
             <div className="absolute right-2.5 bottom-2.5">
               {isStreaming ? (
                 <Button

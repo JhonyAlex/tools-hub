@@ -199,6 +199,8 @@ async function transcribeWithDeepgram(
       smart_format: "true",
       paragraphs: "true",
       punctuate: "true",
+      diarize: "true",
+      utterances: "true",
     }).toString();
 
   const res = await fetch(url, {

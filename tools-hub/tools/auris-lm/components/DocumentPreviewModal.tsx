@@ -94,7 +94,7 @@ export function DocumentPreviewModal({
           {loading && (
             <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
-              <span className="text-sm">Cargando texto…</span>
+              <span className="text-sm">Cargando…</span>
             </div>
           )}
 
@@ -104,7 +104,17 @@ export function DocumentPreviewModal({
             </div>
           )}
 
-          {data && !loading && (
+          {/* PDF inline viewer */}
+          {!loading && !error && doc.mimeType === "application/pdf" && (
+            <iframe
+              src={`/api/auris-lm/spaces/${spaceId}/documents/${doc.id}/preview`}
+              title={doc.originalName}
+              className="w-full h-full min-h-[60vh] border-0 rounded-lg"
+            />
+          )}
+
+          {/* Text preview for non-PDF */}
+          {data && !loading && doc.mimeType !== "application/pdf" && (
             <>
               {data.status === "error" && (
                 <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive mb-3">
