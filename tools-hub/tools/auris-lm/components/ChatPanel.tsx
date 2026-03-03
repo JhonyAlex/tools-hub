@@ -10,6 +10,7 @@ import {
   Loader2,
   Copy,
   Check,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -32,40 +33,40 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   return (
     <div
       className={cn(
-        "flex gap-3",
+        "flex gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300",
         isUser ? "flex-row-reverse" : "flex-row"
       )}
     >
       {/* Avatar */}
       <div
         className={cn(
-          "flex-shrink-0 size-7 rounded-full flex items-center justify-center mt-0.5",
+          "flex-shrink-0 size-8 rounded-xl flex items-center justify-center mt-1 shadow-sm transition-transform hover:scale-105",
           isUser
             ? "bg-primary text-primary-foreground"
-            : "bg-muted text-muted-foreground"
+            : "bg-muted text-muted-foreground border"
         )}
       >
-        {isUser ? <User className="size-3.5" /> : <Bot className="size-3.5" />}
+        {isUser ? <User className="size-4" /> : <Bot className="size-4" />}
       </div>
 
       {/* Content */}
       <div className={cn("flex-1 min-w-0", isUser && "flex flex-col items-end")}>
         <div
           className={cn(
-            "rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap leading-relaxed max-w-[88%]",
+            "rounded-2xl px-5 py-3 text-sm whitespace-pre-wrap leading-relaxed shadow-sm",
             isUser
-              ? "bg-primary text-primary-foreground rounded-tr-sm"
-              : "bg-muted text-foreground rounded-tl-sm"
+              ? "bg-primary text-primary-foreground rounded-tr-none"
+              : "bg-card border text-foreground rounded-tl-none"
           )}
         >
           {msg.content}
           {msg.isStreaming && (
-            <span className="inline-block ml-1 animate-pulse">▋</span>
+            <span className="inline-block ml-1 animate-pulse font-bold text-primary">|</span>
           )}
         </div>
         {/* Sources – only for assistant messages */}
         {!isUser && (msg.sources?.length ?? 0) > 0 && (
-          <div className="mt-1 max-w-[88%] w-full">
+          <div className="mt-2 w-full">
             <SourcesPanel
               sources={msg.sources ?? []}
               webSearchUsed={msg.webSearchUsed}
@@ -100,6 +101,9 @@ export function ChatPanel({
     const text = input.trim();
     if (!text || isStreaming) return;
     setInput("");
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
     onSendMessage(text);
   };
 
@@ -111,67 +115,68 @@ export function ChatPanel({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-muted/5">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Bot className="size-4 text-primary" />
-          <span className="font-medium text-foreground">Chat</span>
-          {webSearch && (
-            <span className="inline-flex items-center gap-1 text-xs text-blue-500 bg-blue-500/10 rounded-full px-2 py-0.5">
-              <Globe className="size-3" />
-              Búsqueda web activa
-            </span>
-          )}
+      <div className="flex items-center justify-between px-6 py-3 border-b bg-card/50 backdrop-blur-md sticky top-0 z-10">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Bot className="size-4.5 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold tracking-tight">Asistente Auris</h3>
+            <div className="flex items-center gap-2">
+              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">En línea</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          {/* Web search toggle */}
+        
+        <div className="flex items-center gap-2">
           <Button
-            size="icon-sm"
+            size="sm"
             variant="ghost"
             onClick={onToggleWebSearch}
-            title={webSearch ? "Desactivar búsqueda web" : "Activar búsqueda web"}
             className={cn(
-              "transition-colors",
+              "h-8 gap-2 rounded-full px-3 text-xs font-medium transition-all",
               webSearch
-                ? "text-blue-500 bg-blue-500/10 hover:bg-blue-500/20"
-                : "text-muted-foreground"
+                ? "bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 ring-1 ring-blue-500/20"
+                : "text-muted-foreground hover:bg-muted"
             )}
           >
-            <Globe />
+            <Globe className="size-3.5" />
+            <span className="hidden sm:inline">{webSearch ? "Web activa" : "Búsqueda web"}</span>
           </Button>
-          {/* Clear history */}
+          
           {messages.length > 0 && (
             <Button
-              size="icon-sm"
+              size="icon"
               variant="ghost"
               onClick={onClearHistory}
-              title="Limpiar conversación"
-              className="text-muted-foreground"
+              className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              title="Limpiar chat"
             >
-              <Trash2 />
+              <Trash2 className="size-3.5" />
             </Button>
           )}
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8">
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center gap-3 pb-8">
-            <Bot className="size-12 text-muted-foreground/30" />
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                {hasDocuments
-                  ? "¿Qué quieres saber sobre tus documentos?"
-                  : "Sube documentos para comenzar"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {hasDocuments
-                  ? "Las respuestas se basarán exclusivamente en los documentos del espacio."
-                  : "AurisLM responde con base en los documentos que subas."}
-              </p>
+          <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto animate-in fade-in zoom-in duration-500">
+            <div className="relative mb-6">
+              <div className="absolute -inset-4 rounded-full bg-primary/10 blur-xl" />
+              <Bot className="relative size-16 text-primary/30" />
             </div>
+            <h4 className="text-lg font-bold tracking-tight mb-2">
+              {hasDocuments ? "¿Cómo puedo ayudarte hoy?" : "Configuración necesaria"}
+            </h4>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {hasDocuments
+                ? "Pregúntame cualquier cosa sobre tus documentos cargados. Estoy listo para analizarlos."
+                : "Para empezar, sube algunos documentos en el panel lateral. Analizaré su contenido para responderte."}
+            </p>
           </div>
         )}
         {messages.map((msg) => (
@@ -181,58 +186,65 @@ export function ChatPanel({
       </div>
 
       {/* Input area */}
-      <div className="border-t p-3">
-        {!hasDocuments && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-1">
-            <Loader2 className="size-3" />
-            Sube al menos un documento para obtener respuestas precisas.
-          </p>
-        )}
-        <div className="flex items-end gap-2">
-          <textarea
-            ref={inputRef}
-            rows={1}
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              // Auto-grow
-              e.target.style.height = "auto";
-              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              isStreaming
-                ? "Esperando respuesta…"
-                : "Escribe tu pregunta (Enter para enviar, Shift+Enter para salto de línea)"
-            }
-            disabled={isStreaming}
-            className={cn(
-              "flex-1 resize-none rounded-xl border bg-background px-4 py-2.5 text-sm outline-none transition-all",
-              "placeholder:text-muted-foreground",
-              "focus:border-primary focus:ring-1 focus:ring-primary/30",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-              "min-h-[42px] max-h-[120px]"
-            )}
-          />
-          {isStreaming ? (
-            <Button
-              size="icon"
-              variant="destructive"
-              onClick={onStopStreaming}
-              title="Detener"
-            >
-              <Square />
-            </Button>
-          ) : (
-            <Button
-              size="icon"
-              onClick={handleSend}
-              disabled={!input.trim()}
-              title="Enviar (Enter)"
-            >
-              <Send />
-            </Button>
+      <div className="p-4 sm:p-6 bg-gradient-to-t from-card/80 to-transparent">
+        <div className="max-w-4xl mx-auto">
+          {!hasDocuments && (
+            <div className="mb-3 flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] font-medium text-amber-600 dark:text-amber-400 animate-bounce">
+              <AlertCircle className="size-3.5" />
+              Sube documentos para activar las respuestas basadas en contenido.
+            </div>
           )}
+          
+          <div className="relative group transition-all">
+            <textarea
+              ref={inputRef}
+              rows={1}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={isStreaming ? "Auris está pensando..." : "Escribe tu pregunta aquí..."}
+              disabled={isStreaming}
+              className={cn(
+                "w-full resize-none rounded-2xl border bg-card/50 backdrop-blur-sm px-5 py-4 pr-14 text-sm outline-none transition-all shadow-lg",
+                "placeholder:text-muted-foreground/60",
+                "focus:border-primary focus:ring-4 focus:ring-primary/10",
+                "disabled:opacity-50",
+                "min-h-[56px] max-h-[200px]"
+              )}
+            />
+            
+            <div className="absolute right-2.5 bottom-2.5">
+              {isStreaming ? (
+                <Button
+                  size="icon"
+                  variant="destructive"
+                  onClick={onStopStreaming}
+                  className="h-10 w-10 rounded-xl shadow-lg animate-pulse"
+                >
+                  <Square className="size-4" />
+                </Button>
+              ) : (
+                <Button
+                  size="icon"
+                  onClick={handleSend}
+                  disabled={!input.trim()}
+                  className={cn(
+                    "h-10 w-10 rounded-xl shadow-lg transition-all",
+                    input.trim() ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0 pointer-events-none"
+                  )}
+                >
+                  <Send className="size-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+          <p className="mt-3 text-[10px] text-center text-muted-foreground font-medium uppercase tracking-tighter opacity-50">
+            AurisLM puede cometer errores. Verifica la información importante.
+          </p>
         </div>
       </div>
     </div>

@@ -32,23 +32,23 @@ function isAudioType(mimeType: string): boolean {
 function StatusBadge({ status, errorMessage }: { status: AurisDocument["status"]; errorMessage?: string | null }) {
   if (status === "processing") {
     return (
-      <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-        <Loader2 className="size-3 animate-spin" />
+      <Badge variant="secondary" className="flex items-center gap-1.5 px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 border-amber-500/20">
+        <Loader2 className="size-2.5 animate-spin" />
         Procesando
       </Badge>
     );
   }
   if (status === "ready") {
     return (
-      <Badge className="flex items-center gap-1 text-xs bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-transparent">
-        <CheckCircle2 className="size-3" />
+      <Badge className="flex items-center gap-1.5 px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shadow-none">
+        <CheckCircle2 className="size-2.5" />
         Listo
       </Badge>
     );
   }
   return (
-    <Badge variant="destructive" className="flex items-center gap-1 text-xs" title={errorMessage ?? ""}>
-      <AlertCircle className="size-3" />
+    <Badge variant="destructive" className="flex items-center gap-1.5 px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-wider shadow-none" title={errorMessage ?? ""}>
+      <AlertCircle className="size-2.5" />
       Error
     </Badge>
   );
@@ -89,94 +89,99 @@ export function DocumentList({
       setTextBody("");
       setTab("file");
     } else {
-      setUploadError("No se pudo guardar el texto. Revisa la conexión e intenta de nuevo.");
+      setUploadError("No se pudo guardar el texto.");
     }
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {/* Tab switcher */}
-      <div className="flex rounded-lg border bg-muted/30 p-0.5 text-xs font-medium">
+      <div className="flex p-1 rounded-xl bg-muted/50 border shadow-inner">
         <button
           className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 transition-colors",
+            "flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all",
             tab === "file"
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-card text-primary shadow-sm ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground"
           )}
           onClick={() => { setTab("file"); setUploadError(null); }}
         >
-          <Upload className="size-3" />
-          Archivo
+          <Upload className="size-3.5" />
+          Subir Archivo
         </button>
         <button
           className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 transition-colors",
+            "flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all",
             tab === "text"
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-card text-primary shadow-sm ring-1 ring-border"
               : "text-muted-foreground hover:text-foreground"
           )}
           onClick={() => { setTab("text"); setUploadError(null); }}
         >
-          <ClipboardPaste className="size-3" />
-          Texto
+          <ClipboardPaste className="size-3.5" />
+          Pegar Texto
         </button>
       </div>
 
       {/* Tab: file upload */}
       {tab === "file" && (
-        <>
+        <div className="animate-in fade-in duration-300">
           <UploadDropzone
             onFiles={async (files) => {
               setUploadError(null);
               const ok = await onUpload(files);
-              if (!ok) setUploadError("No se pudo subir el archivo. Revisa la conexión e intenta de nuevo.");
+              if (!ok) setUploadError("Error al subir el archivo.");
             }}
             uploading={uploading}
             uploadProgress={uploadProgress}
           />
           {uploadError && (
-            <p className="text-xs text-destructive">{uploadError}</p>
+            <p className="mt-2 text-[11px] font-medium text-destructive flex items-center gap-1">
+              <AlertCircle className="size-3" /> {uploadError}
+            </p>
           )}
-        </>
+        </div>
       )}
 
       {/* Tab: paste text */}
       {tab === "text" && (
-        <div className="flex flex-col gap-2">
-          <input
-            type="text"
-            placeholder="Título (ej: Notas reunión, Política interna…)"
-            value={textTitle}
-            onChange={(e) => setTextTitle(e.target.value)}
-            maxLength={80}
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-          />
-          <textarea
-            placeholder="Pega o escribe el texto aquí…"
-            value={textBody}
-            onChange={(e) => setTextBody(e.target.value)}
-            rows={7}
-            className="w-full resize-none rounded-lg border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-          />
-          {uploadError && tab === "text" && (
-            <p className="text-xs text-destructive">{uploadError}</p>
+        <div className="flex flex-col gap-3 animate-in fade-in duration-300">
+          <div className="space-y-2">
+            <input
+              type="text"
+              placeholder="Título descriptivo..."
+              value={textTitle}
+              onChange={(e) => setTextTitle(e.target.value)}
+              maxLength={80}
+              className="w-full rounded-xl border bg-card px-3 py-2 text-sm placeholder:text-muted-foreground/50 outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
+            />
+            <textarea
+              placeholder="Pega el contenido aquí..."
+              value={textBody}
+              onChange={(e) => setTextBody(e.target.value)}
+              rows={6}
+              className="w-full resize-none rounded-xl border bg-card px-3 py-2 text-sm placeholder:text-muted-foreground/50 outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all custom-scrollbar"
+            />
+          </div>
+          {uploadError && (
+            <p className="text-[11px] font-medium text-destructive flex items-center gap-1">
+              <AlertCircle className="size-3" /> {uploadError}
+            </p>
           )}
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground">
-              {textBody.trim().length > 0
-                ? `${textBody.trim().length.toLocaleString()} caracteres`
-                : ""}
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              {textBody.trim().length > 0 ? `${textBody.trim().length} CARACTERES` : ""}
             </span>
             <Button
               size="sm"
               onClick={() => void handleAddText()}
               disabled={!textBody.trim() || addingText}
+              className="rounded-full shadow-md"
             >
               {addingText ? (
-                <><Loader2 className="size-3.5 animate-spin mr-1" />Añadiendo…</>
+                <><Loader2 className="size-3.5 animate-spin mr-1.5" />Guardando</>
               ) : (
-                <><ClipboardPaste className="size-3.5 mr-1" />Añadir fuente</>
+                <><CheckCircle2 className="size-3.5 mr-1.5" />Guardar Fuente</>
               )}
             </Button>
           </div>
@@ -184,91 +189,92 @@ export function DocumentList({
       )}
 
       {/* Document list */}
-      {loading && documents.length === 0 ? (
-        <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          Cargando documentos…
-        </div>
-      ) : documents.length === 0 ? (
-        <p className="py-3 text-sm text-muted-foreground text-center">
-          Sube documentos o pega texto para comenzar a chatear.
-        </p>
-      ) : (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-0.5">
-            {documents.length} fuente{documents.length !== 1 ? "s" : ""}
+      <div className="mt-2 space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            {documents.length} FUENTE{documents.length !== 1 ? "S" : ""} CARGADAS
           </p>
-          {documents.map((doc) => (
-            <div
-              key={doc.id}
-              className={cn(
-                "flex items-start gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors",
-                doc.status === "error" && "border-destructive/40 bg-destructive/5",
-                doc.status === "ready" && "hover:bg-accent/40 cursor-pointer"
-              )}
-              onClick={() => doc.status === "ready" && setPreviewDoc(doc)}
-            >
-              {/* Icon */}
-              <div className="mt-0.5 shrink-0 text-muted-foreground">
-                {isAudioType(doc.mimeType) ? (
-                  <FileAudio className="size-4" />
-                ) : (
-                  <FileText className="size-4" />
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate leading-tight">
-                  {doc.originalName}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-muted-foreground">
-                    {formatBytes(doc.fileSize)}
-                  </span>
-                  <StatusBadge status={doc.status} errorMessage={doc.errorMessage} />
-                </div>
-                {doc.status === "error" && doc.errorMessage && (
-                  <p className="text-xs text-destructive mt-1 line-clamp-2">
-                    {doc.errorMessage}
-                  </p>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                {doc.status === "ready" && (
-                  <Button
-                    size="icon-xs"
-                    variant="ghost"
-                    title="Ver texto"
-                    onClick={() => setPreviewDoc(doc)}
-                  >
-                    <Eye />
-                  </Button>
-                )}
-                <Button
-                  size="icon-xs"
-                  variant="ghost"
-                  title="Descargar"
-                  onClick={() => onDownload(doc.id, doc.originalName)}
-                >
-                  <Download />
-                </Button>
-                <Button
-                  size="icon-xs"
-                  variant="ghost"
-                  title="Eliminar"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => onDelete(doc.id)}
-                >
-                  <Trash2 />
-                </Button>
-              </div>
-            </div>
-          ))}
+          {loading && <Loader2 className="size-3 animate-spin text-primary" />}
         </div>
-      )}
+        
+        {documents.length === 0 && !loading ? (
+          <div className="py-8 px-4 rounded-2xl border border-dashed text-center bg-muted/5">
+            <FileText className="size-8 mx-auto mb-2 text-muted-foreground/20" />
+            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-tighter">
+              Sin fuentes activas
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {documents.map((doc) => (
+              <div
+                key={doc.id}
+                className={cn(
+                  "group relative flex flex-col gap-2 rounded-xl border bg-card p-3 transition-all duration-200 shadow-sm",
+                  doc.status === "error" ? "border-destructive/30 bg-destructive/5" : "hover:border-primary/30 hover:shadow-md",
+                  doc.status === "ready" && "cursor-pointer"
+                )}
+                onClick={() => doc.status === "ready" && setPreviewDoc(doc)}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                    doc.status === "error" ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                  )}>
+                    {isAudioType(doc.mimeType) ? (
+                      <FileAudio className="size-4.5" />
+                    ) : (
+                      <FileText className="size-4.5" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate leading-none mb-1.5">
+                      {doc.originalName}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-muted-foreground/60">
+                        {formatBytes(doc.fileSize)}
+                      </span>
+                      <StatusBadge status={doc.status} errorMessage={doc.errorMessage} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hover actions */}
+                <div className="flex items-center justify-end gap-1 mt-1 pt-2 border-t border-dashed opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                  {doc.status === "ready" && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 rounded-md"
+                      onClick={() => setPreviewDoc(doc)}
+                    >
+                      <Eye className="size-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 rounded-md"
+                    onClick={() => onDownload(doc.id, doc.originalName)}
+                  >
+                    <Download className="size-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => onDelete(doc.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Document preview modal */}
       <DocumentPreviewModal

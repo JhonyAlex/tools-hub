@@ -46,46 +46,49 @@ export function SpaceView({ space }: SpaceViewProps) {
   const [docsOpen, setDocsOpen] = useState(true);
 
   return (
-    <div className="flex h-full gap-0 rounded-xl border bg-card overflow-hidden">
+    <div className="flex h-full gap-0 rounded-2xl border bg-card/50 backdrop-blur-sm overflow-hidden shadow-sm">
       {/* Left panel: Documents */}
       <div
         className={cn(
-          "shrink-0 border-r flex flex-col overflow-hidden transition-all duration-300",
-          docsOpen ? "w-72" : "w-10"
+          "shrink-0 border-r flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-muted/5",
+          docsOpen ? "w-80" : "w-12"
         )}
       >
         {/* Toggle button row */}
         <div className={cn(
-          "flex items-center border-b px-2 py-2",
+          "flex items-center border-b px-3 h-14 bg-card/50",
           docsOpen ? "justify-between" : "justify-center"
         )}>
           {docsOpen && (
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pl-1">
-              Documentos
-            </span>
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-1 bg-primary rounded-full" />
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">
+                Fuentes de Datos
+              </span>
+            </div>
           )}
           <button
             onClick={() => setDocsOpen((v) => !v)}
             title={docsOpen ? "Ocultar panel" : "Mostrar documentos"}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-all hover:scale-105"
           >
             {docsOpen ? (
-              <PanelLeftClose className="size-3.5" />
+              <PanelLeftClose className="size-4" />
             ) : (
-              <PanelLeftOpen className="size-3.5" />
+              <PanelLeftOpen className="size-4" />
             )}
           </button>
         </div>
 
         {/* Content */}
         {docsOpen && (
-          <div className="flex flex-col flex-1 p-4 overflow-y-auto">
-            <div className="mb-3">
-              <h3 className="text-sm font-semibold text-foreground leading-tight">
+          <div className="flex flex-col flex-1 p-5 overflow-y-auto custom-scrollbar">
+            <div className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/10">
+              <h3 className="text-sm font-bold text-foreground leading-tight truncate">
                 {space.name}
               </h3>
               {space.description && (
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                <p className="text-[11px] text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
                   {space.description}
                 </p>
               )}
@@ -105,14 +108,16 @@ export function SpaceView({ space }: SpaceViewProps) {
 
         {/* Collapsed: doc count badge */}
         {!docsOpen && documents.length > 0 && (
-          <div className="flex flex-col items-center gap-1 pt-3">
-            <span className="text-xs font-semibold text-muted-foreground">{documents.length}</span>
+          <div className="flex flex-col items-center gap-2 pt-4">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary border border-primary/20">
+              {documents.length}
+            </div>
           </div>
         )}
       </div>
 
       {/* Right panel: Chat */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-background/50">
         <ChatPanel
           messages={messages}
           isStreaming={isStreaming}
