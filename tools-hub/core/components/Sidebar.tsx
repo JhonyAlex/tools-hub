@@ -212,6 +212,17 @@ export function Sidebar({ categories, className }: SidebarProps) {
           className="absolute left-0 top-0 h-full w-64 bg-background border-r shadow-xl z-40 animate-in slide-in-from-left duration-200 flex flex-col"
           onMouseEnter={() => setFlyoutOpen(true)}
         >
+          {/* Header con Tools Hub */}
+          <div className="shrink-0 p-3 border-b border-border/50 bg-background">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              <span className="font-semibold text-foreground">Tools Hub</span>
+              <br />
+              <kbd className="mt-1 inline-block rounded border bg-muted px-1 font-mono text-[9px]">
+                ⌘K
+              </kbd>{" "}
+              para buscar
+            </p>
+          </div>
           <nav className="flex-1 overflow-y-auto p-2">
             <SidebarContent
               sortedCategories={sortedCategories}
@@ -224,6 +235,20 @@ export function Sidebar({ categories, className }: SidebarProps) {
           <div className="shrink-0 p-2 border-t border-border/50 bg-background mt-auto">
             <SidebarFooter collapsed={false} toggle={toggle} />
           </div>
+        </div>
+      )}
+
+      {/* Header con Tools Hub - solo cuando está expandido */}
+      {!collapsed && (
+        <div className="shrink-0 p-3 border-b border-border/50 bg-muted/30">
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Tools Hub</span>
+            <br />
+            <kbd className="mt-1 inline-block rounded border bg-muted px-1 font-mono text-[9px]">
+              ⌘K
+            </kbd>{" "}
+            para buscar
+          </p>
         </div>
       )}
 
@@ -410,22 +435,6 @@ function SidebarFooter({ collapsed, toggle }: SidebarFooterProps) {
           </div>
         )}
       </button>
-
-      {/* Footer info - only when expanded */}
-      {!collapsed && (
-        <div className="mt-2 rounded-xl border border-border/50 bg-background/50 p-3">
-          <p className="text-[10px] text-muted-foreground leading-relaxed">
-            <span className="font-medium text-foreground">Tools Hub</span>
-            <br />
-            Selecciona una herramienta para comenzar.
-            <br />
-            <kbd className="mt-1 inline-block rounded border bg-muted px-1 font-mono text-[9px]">
-              ⌘K
-            </kbd>{" "}
-            para buscar
-          </p>
-        </div>
-      )}
     </div>
   );
 }
