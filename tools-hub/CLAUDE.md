@@ -47,3 +47,73 @@ Steps:
 - `npx prisma migrate dev` - Run DB migrations
 - `npx prisma generate` - Generate Prisma client
 - `docker compose up` - Start local PostgreSQL
+
+## UI/UX Patterns (Updated March 2025)
+
+### Command Bar
+Global search accessible via `⌘K` or the search button in the header. Uses the
+`CommandBar` component from `@/core/components/CommandBar`.
+
+### Tool Page Layout
+All tool pages should use the standardized layout:
+
+```tsx
+import { ToolPageLayout } from "@/core/components/ToolPageLayout";
+import { ToolLayout, ToolInputPanel, ToolOutputPanel } from "@/core/components/ToolLayout";
+
+<ToolPageLayout
+  title="Tool Name"
+  description="What this tool does"
+  category="utilities" // or other category
+  icon={ToolIcon}
+>
+  <ToolLayout
+    sidebar={
+      <ToolInputPanel title="Configuration" description="Settings">
+        {/* Input controls */}
+      </ToolInputPanel>
+    }
+  >
+    <ToolOutputPanel
+      title="Results"
+      empty={!hasData}
+      emptyTitle="No data"
+      emptyDescription="Enter input to see results"
+    >
+      {/* Results */}
+    </ToolOutputPanel>
+  </ToolLayout>
+</ToolPageLayout>
+```
+
+### Category Styling
+Each category has consistent colors:
+- `reports` - Blue
+- `utilities` - Slate/Gray
+- `generators` - Amber
+- `communication` - Violet
+- `seo` - Emerald
+- `finance` - Cyan
+- `design` - Pink
+- `development` - Sky
+
+Use `CATEGORY_STYLES` from components when styling category-specific UI.
+
+### Empty States
+Use the `EmptyState` component with appropriate props:
+```tsx
+<EmptyState
+  icon={IconComponent}
+  title="No data"
+  description="Explanation here"
+  action={<Button>Action</Button>}
+  size="md" // sm, md, lg
+  variant="card" // default, card, page
+/>
+```
+
+### Components Index
+Import all core components from:
+```tsx
+import { ToolCard, CategorySection, EmptyState } from "@/core/components";
+```

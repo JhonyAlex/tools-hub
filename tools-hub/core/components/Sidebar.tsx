@@ -2,21 +2,28 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { 
-  Home, 
-  FileText, 
-  Settings, 
-  BarChart3, 
-  Palette, 
-  Code2, 
+import {
+  Home,
+  BarChart3,
+  Settings,
+  Zap,
   Mail,
+  FileText,
   Wallet,
-  Zap
+  Palette,
+  Code2,
+  ChevronDown,
+  History,
+  Star,
+  Command,
+  HelpCircle,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/core/types/tool.types";
 import type { ToolCategory } from "@/core/types/tool.types";
 import { useSidebar } from "@/core/providers";
+import { useState } from "react";
 
 interface SidebarProps {
   categories: ToolCategory[];
@@ -34,15 +41,139 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  generators: "text-yellow-500 bg-yellow-500/10",
-  reports: "text-blue-500 bg-blue-500/10",
-  utilities: "text-gray-500 bg-gray-500/10",
-  communication: "text-purple-500 bg-purple-500/10",
-  seo: "text-green-500 bg-green-500/10",
-  finance: "text-emerald-500 bg-emerald-500/10",
-  design: "text-pink-500 bg-pink-500/10",
-  development: "text-cyan-500 bg-cyan-500/10",
+  generators: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+  reports: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+  utilities: "text-slate-500 bg-slate-500/10 border-slate-500/20",
+  communication: "text-violet-500 bg-violet-500/10 border-violet-500/20",
+  seo: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+  finance: "text-cyan-500 bg-cyan-500/10 border-cyan-500/20",
+  design: "text-pink-500 bg-pink-500/10 border-pink-500/20",
+  development: "text-sky-500 bg-sky-500/10 border-sky-500/20",
 };
+
+const CATEGORY_GRADIENTS: Record<string, string> = {
+  generators: "from-amber-500/20 to-orange-500/20",
+  reports: "from-blue-500/20 to-indigo-500/20",
+  utilities: "from-slate-500/20 to-zinc-500/20",
+  communication: "from-violet-500/20 to-purple-500/20",
+  seo: "from-emerald-500/20 to-teal-500/20",
+  finance: "from-cyan-500/20 to-blue-500/20",
+  design: "from-pink-500/20 to-rose-500/20",
+  development: "from-sky-500/20 to-cyan-500/20",
+};
+
+interface NavItemProps {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  isActive: boolean;
+  collapsed: boolean;
+  badge?: React.ReactNode;
+  colorClass?: string;
+  isCategory?: boolean;
+}
+
+function NavItem({
+  href,
+  icon,
+  label,
+  isActive,
+  collapsed,
+  badge,
+  colorClass = "",
+  isCategory = false,
+}: NavItemProps) {
+  return (
+    <Link
+      href={href}
+      title={collapsed ? label : undefined}
+      className={cn(
+        "group flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-200",
+        isActive
+          ? "bg-accent text-accent-foreground shadow-sm"
+          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
+          isActive
+            ? "bg-background/80 text-foreground"
+            : cn(
+                "bg-muted group-hover:bg-background",
+                isCategory && colorClass
+              )
+        )}
+      >
+        {icon}
+      </div>
+      {!collapsed && (
+        <>
+          <span className="flex-1 truncate">{label}</span>
+          {badge}
+          {isActive && (
+            <div className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground/50" />
+          )}
+        </>
+      )}
+    </Link>
+  );
+}
+
+interface CollapsibleSectionProps {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  collapsed: boolean;
+}
+
+function CollapsibleSection({
+  title,
+  icon,
+  children,
+  defaultOpen = true,
+  collapsed,
+}: CollapsibleSectionProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  if (collapsed) {
+    return (
+      <div className="space-y-0.5">
+        <div className="border-t border-border/50 my-3" />
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          {icon}
+          {title}
+        </span>
+        <ChevronDown
+          className={cn(
+            "h-3.5 w-3.5 transition-transform duration-200",
+            isOpen ? "rotate-0" : "-rotate-90"
+          )}
+        />
+      </button>
+      <div
+        className={cn(
+          "space-y-0.5 overflow-hidden transition-all duration-200",
+          isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export function Sidebar({ categories }: SidebarProps) {
   const pathname = usePathname();
@@ -52,103 +183,142 @@ export function Sidebar({ categories }: SidebarProps) {
 
   const isHomeActive = pathname === "/" && !currentCategory;
 
+  // Sort categories for consistent order
+  const sortedCategories = [...categories].sort();
+
   return (
     <aside
       className={cn(
-        "hidden shrink-0 border-r bg-muted/20 md:block transition-all duration-300 overflow-hidden",
-        collapsed ? "w-14" : "w-60"
+        "hidden shrink-0 border-r bg-muted/30 md:block transition-all duration-300 ease-in-out overflow-hidden",
+        collapsed ? "w-16" : "w-64"
       )}
     >
-      <nav className="flex flex-col gap-1 p-2">
-        {/* Home link */}
-        <Link
-          href="/"
-          title={collapsed ? "Inicio" : undefined}
-          className={cn(
-            "group flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition-all duration-200",
-            isHomeActive
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground"
-          )}
-        >
-          <div className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
-            isHomeActive 
-              ? "bg-primary-foreground/20" 
-              : "bg-muted group-hover:bg-background"
-          )}>
-            <Home className="h-4 w-4" />
-          </div>
-          {!collapsed && (
-            <>
-              <span>Inicio</span>
-              {isHomeActive && (
-                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary-foreground" />
-              )}
-            </>
-          )}
-        </Link>
+      <nav className="flex flex-col h-full p-2">
+        {/* Main Scrollable Area */}
+        <div className="flex-1 space-y-1 overflow-y-auto">
+          {/* Home Link */}
+          <NavItem
+            href="/"
+            icon={<Home className="h-4 w-4" />}
+            label="Inicio"
+            isActive={isHomeActive}
+            collapsed={collapsed}
+          />
 
-        {categories.length > 0 && (
-          <>
-            {!collapsed && (
-              <div className="mt-5 mb-2 px-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Categorías
-                </span>
-              </div>
-            )}
-            {collapsed && <div className="mt-4 mb-2 border-t border-border/50" />}
-            <div className="space-y-0.5">
-              {categories.map((cat) => {
-                const isActive = currentCategory === cat;
-                const colorClass = CATEGORY_COLORS[cat] || CATEGORY_COLORS.utilities;
-                
-                return (
-                  <Link
-                    key={cat}
-                    href={`/?category=${cat}`}
-                    title={collapsed ? CATEGORY_LABELS[cat] : undefined}
-                    className={cn(
-                      "group flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm transition-all duration-200",
-                      isActive
-                        ? "bg-accent text-accent-foreground font-medium"
-                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                    )}
-                  >
-                    <div className={cn(
-                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
-                      isActive 
-                        ? "bg-background/80" 
-                        : `bg-muted ${colorClass.split(' ')[1]} group-hover:bg-background`
-                    )}>
-                      <span className={cn(
-                        isActive ? "text-foreground" : colorClass.split(' ')[0]
-                      )}>
-                        {CATEGORY_ICONS[cat]}
-                      </span>
-                    </div>
-                    {!collapsed && (
-                      <>
-                        <span>{CATEGORY_LABELS[cat]}</span>
-                        {isActive && (
-                          <div className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground/50" />
+          {/* Quick Access Section */}
+          <CollapsibleSection
+            title="Acceso Rápido"
+            icon={<Sparkles className="h-3.5 w-3.5" />}
+            defaultOpen={true}
+            collapsed={collapsed}
+          >
+            <NavItem
+              href="/?filter=recent"
+              icon={<History className="h-4 w-4" />}
+              label="Recientes"
+              isActive={searchParams.get("filter") === "recent"}
+              collapsed={collapsed}
+            />
+            <NavItem
+              href="/?filter=favorites"
+              icon={<Star className="h-4 w-4" />}
+              label="Favoritas"
+              isActive={searchParams.get("filter") === "favorites"}
+              collapsed={collapsed}
+            />
+          </CollapsibleSection>
+
+          {/* Categories Section */}
+          {sortedCategories.length > 0 && (
+            <CollapsibleSection
+              title="Categorías"
+              icon={<Command className="h-3.5 w-3.5" />}
+              defaultOpen={true}
+              collapsed={collapsed}
+            >
+              <div className="space-y-0.5">
+                {sortedCategories.map((cat) => {
+                  const isActive = currentCategory === cat;
+                  const colorClass = CATEGORY_COLORS[cat] || CATEGORY_COLORS.utilities;
+                  const gradientClass = CATEGORY_GRADIENTS[cat] || CATEGORY_GRADIENTS.utilities;
+
+                  return (
+                    <Link
+                      key={cat}
+                      href={`/?category=${cat}`}
+                      title={collapsed ? CATEGORY_LABELS[cat] : undefined}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm transition-all duration-200",
+                        isActive
+                          ? "bg-gradient-to-r shadow-sm"
+                          : "hover:bg-accent/50",
+                        isActive ? gradientClass : "",
+                        isActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-all duration-200",
+                          isActive
+                            ? "bg-background/80 border-foreground/10"
+                            : cn("bg-muted border-transparent", colorClass.split(" ")[2]),
+                          isActive ? "" : colorClass.split(" ")[0]
                         )}
-                      </>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </>
-        )}
+                      >
+                        {CATEGORY_ICONS[cat]}
+                      </div>
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1">{CATEGORY_LABELS[cat]}</span>
+                          {isActive && (
+                            <div className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground/50" />
+                          )}
+                        </>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </CollapsibleSection>
+          )}
 
-        {/* Footer info */}
+          {/* System Section */}
+          <CollapsibleSection
+            title="Sistema"
+            icon={<Settings className="h-3.5 w-3.5" />}
+            defaultOpen={false}
+            collapsed={collapsed}
+          >
+            <NavItem
+              href="/settings"
+              icon={<Settings className="h-4 w-4" />}
+              label="Configuración"
+              isActive={pathname === "/settings"}
+              collapsed={collapsed}
+            />
+            <NavItem
+              href="/help"
+              icon={<HelpCircle className="h-4 w-4" />}
+              label="Ayuda"
+              isActive={pathname === "/help"}
+              collapsed={collapsed}
+            />
+          </CollapsibleSection>
+        </div>
+
+        {/* Footer */}
         {!collapsed && (
-          <div className="mt-auto pt-6">
-            <div className="rounded-lg border border-border/50 bg-muted/50 p-3">
+          <div className="mt-auto pt-4 border-t border-border/50">
+            <div className="rounded-xl border border-border/50 bg-background/50 p-3">
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Selecciona una herramienta para comenzar a trabajar.
+                <span className="font-medium text-foreground">Tools Hub</span>
+                <br />
+                Selecciona una herramienta para comenzar.
+                <br />
+                <kbd className="mt-1 inline-block rounded border bg-muted px-1 font-mono text-[9px]">
+                  ⌘K
+                </kbd>{" "}
+                para buscar
               </p>
             </div>
           </div>
