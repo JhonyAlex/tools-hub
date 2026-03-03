@@ -1,17 +1,16 @@
+import { BarChart3 } from "lucide-react";
+import { ToolPageLayout } from "@/core/components/ToolPageLayout";
 import { MaintenanceReportApp } from "@/tools/maintenance-report";
 
 export default function MaintenanceReportPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Pigmea – Reporte Diario Mantenimiento
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          Value Keep · Analiza el CSV de Primavera, genera el resumen diario, detecta incidencias y guarda el histórico.
-        </p>
-      </div>
+    <ToolPageLayout
+      title="Reporte Diario Mantenimiento"
+      description="Value Keep · Analiza el CSV de Primavera, genera el resumen diario, detecta incidencias y guarda el histórico."
+      category="reports"
+      icon={BarChart3}
+    >
       <MaintenanceReportApp />
-    </div>
+    </ToolPageLayout>
   );
 }
