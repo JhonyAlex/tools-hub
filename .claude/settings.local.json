@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest tools-hub --typescript --tailwind --app --src-dir=false --eslint --no-turbopack --import-alias \"@/*\" --use-npm)",
+      "Bash(npx create-next-app@latest tools-hub --typescript --tailwind --app --src-dir=false --eslint --no-turbopack --import-alias \"@/*\" --use-npm --yes)",
+      "Bash(npm install prisma @prisma/client lucide-react)",
+      "Bash(npx shadcn@latest init -d --base-color neutral)",
+      "Bash(npx shadcn@latest add card button input badge separator -y)",
+      "Bash(npx prisma init --datasource-provider postgresql)",
+      "Bash(npx next build)",
+      "Bash(npx prisma generate)",
+      "Bash(ls \"x:/Proyectos/herramientas/tools-hub/lib/generated/prisma/\"*.ts)",
+      "Bash(grep -l \"export\" \"x:/Proyectos/herramientas/tools-hub/lib/generated/prisma/\"*.ts)",
+      "Bash(npm install prisma@5 @prisma/client@5)",
+      "Bash(wc -l \"x:\\\\Proyectos\\\\herramientas/Primavera_Mano_de_Obra_Lista \\(3\\).csv\")",
+      "Bash(head -5 \"x:/Proyectos/herramientas/Primavera_Mano_de_Obra_Lista \\(3\\).csv\")",
+      "Bash(ls -R \"x:/Proyectos/herramientas/tools-hub/app/\\(dashboard\\)\")",
+      "Bash(head -10 \"x:/Proyectos/herramientas/Primavera_Mano_de_Obra_Lista \\(3\\).csv\")",
+      "Bash(tr ';' '\\\\n')",
+      "Bash(wc -l \"x:/Proyectos/herramientas/Primavera_Mano_de_Obra_Lista \\(3\\).csv\")",
+      "Bash(npm install html2canvas-pro)",
+      "Bash(npm run build)",
+      "Bash(npm install jspdf)",
+      "Bash(npx prisma migrate dev --name add-maintenance-report-sem-mes)",
+      "Bash(pg_isready -h localhost -p 5432)",
+      "Bash(powershell -Command \"Get-Service -Name ''postgresql*'' 2>$null | Select-Object Name, Status\")",
+      "Bash(powershell -Command \"Get-Service -Name ''postgresql*'' | Select-Object Name, Status\")",
+      "Bash(\"/c/Program Files/PostgreSQL/15/bin/psql.exe\" -U postgres -c \"SELECT 1\")",
+      "Bash(npx prisma db push)",
+      "Bash(ls .env*)",
+      "Bash(npx tsc --noEmit --pretty)",
+      "Bash(npx next build --no-lint)",
+      "Bash(node -e \"const p=require\\(''./package.json''\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\)\")"
+    ]
+  }
+}
