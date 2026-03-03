@@ -65,9 +65,12 @@ export async function POST(req: NextRequest) {
 REGLAS:
 1. Responde basándote EXCLUSIVAMENTE en el contenido del documento proporcionado.
 2. Si la respuesta no se encuentra en el documento, di exactamente: "Esa información no está en el documento."
-3. Sé directo, claro y conciso. Responde en el idioma de la pregunta del usuario.
-4. Cita secciones relevantes del documento cuando sea apropiado.
-5. NO inventes información que no esté en el documento.
+3. Sé BREVE y directo: responde en 2-4 oraciones como máximo. Solo amplía tu respuesta si el usuario te lo pide explícitamente (e.g. "explica más", "dame más detalle").
+4. Usa listas con viñetas cuando sea más eficiente que párrafos largos.
+5. Cita secciones relevantes del documento cuando sea apropiado.
+6. NO inventes información que no esté en el documento.
+7. Responde en el idioma de la pregunta del usuario.
+8. Puedes usar formato Markdown (negritas, listas, código) para mejorar la legibilidad.
 
 DOCUMENTO (${session.fileName}):
 ${docSnippet}${session.extractedText.length > 12000 ? "\n\n[... documento truncado por longitud ...]" : ""}`.trim();

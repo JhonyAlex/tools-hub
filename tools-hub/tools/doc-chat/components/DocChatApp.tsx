@@ -11,6 +11,7 @@ export function DocChatApp() {
     const {
         session,
         messages,
+        pdfBlobUrl,
         isUploading,
         isStreaming,
         isAnalyzingRole,
@@ -23,10 +24,21 @@ export function DocChatApp() {
     } = useDocChat();
 
     const [showExportModal, setShowExportModal] = useState(false);
+    const [exportContent, setExportContent] = useState<string | null>(null);
 
     const handleSelectionAction = (instruction: string, selectedText: string) => {
         const combinedMessage = `${instruction}\n\n"${selectedText}"`;
         sendMessage(combinedMessage);
+    };
+
+    const handleExportDocument = () => {
+        setExportContent(null); // null = export full document
+        setShowExportModal(true);
+    };
+
+    const handleExportMessage = (content: string) => {
+        setExportContent(content);
+        setShowExportModal(true);
     };
 
     return (
@@ -35,7 +47,7 @@ export function DocChatApp() {
             {session && (
                 <div className="flex items-center justify-end gap-2">
                     <button
-                        onClick={() => setShowExportModal(true)}
+                        onClick={handleExportDocument}
                         className="flex items-center gap-2 rounded-md border border-border/50 bg-background px-3
                        py-1.5 text-sm font-medium text-muted-foreground
                        transition-colors hover:bg-muted hover:text-foreground"
@@ -55,12 +67,13 @@ export function DocChatApp() {
             )}
 
             {/* Main split layout */}
-            <div className="grid h-[calc(100vh-220px)] min-h-[500px] grid-cols-1 gap-4 lg:grid-cols-5">
+            <div className="grid h-[calc(100vh-220px)] min-h-[500px] grid-cols-1 gap-4 overflow-hidden lg:grid-cols-5">
                 {/* Left panel: Document viewer (60%) */}
-                <div className="lg:col-span-3">
+                <div className="min-h-0 lg:col-span-3">
                     <ViewerPanel
                         text={session?.extractedText ?? null}
                         fileName={session?.fileName ?? null}
+                        pdfUrl={pdfBlobUrl}
                         isLoading={isUploading}
                         onSelectionAction={handleSelectionAction}
                         onFileUpload={uploadFile}
@@ -68,7 +81,7 @@ export function DocChatApp() {
                 </div>
 
                 {/* Right panel: Chat (40%) */}
-                <div className="lg:col-span-2">
+                <div className="min-h-0 lg:col-span-2">
                     <ChatPanel
                         messages={messages}
                         isStreaming={isStreaming}
@@ -78,6 +91,7 @@ export function DocChatApp() {
                         onSendMessage={sendMessage}
                         onStopStreaming={stopStreaming}
                         onClearHistory={clearHistory}
+                        onExportMessage={handleExportMessage}
                     />
                 </div>
             </div>
@@ -86,10 +100,14 @@ export function DocChatApp() {
             {session && (
                 <ExportToAurisModal
                     isOpen={showExportModal}
-                    onClose={() => setShowExportModal(false)}
+                    onClose={() => {
+                        setShowExportModal(false);
+                        setExportContent(null);
+                    }}
                     fileName={session.fileName}
                     extractedText={session.extractedText}
                     mimeType={session.mimeType}
+                    contentOverride={exportContent}
                 />
             )}
         </div>

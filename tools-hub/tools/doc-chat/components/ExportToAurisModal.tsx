@@ -17,6 +17,7 @@ interface ExportToAurisModalProps {
     fileName: string;
     extractedText: string;
     mimeType: string;
+    contentOverride?: string | null;
 }
 
 export function ExportToAurisModal({
@@ -25,6 +26,7 @@ export function ExportToAurisModal({
     fileName,
     extractedText,
     mimeType,
+    contentOverride,
 }: ExportToAurisModalProps) {
     const [spaces, setSpaces] = useState<AurisSpace[]>([]);
     const [loading, setLoading] = useState(true);
@@ -46,7 +48,12 @@ export function ExportToAurisModal({
         setExporting(true);
         setResult(null);
 
-        const res = await exportToAuris(spaceId, fileName, extractedText, mimeType);
+        const exportText = contentOverride ?? extractedText;
+        const exportName = contentOverride
+            ? `Respuesta DocChat – ${fileName}`
+            : fileName;
+
+        const res = await exportToAuris(spaceId, exportName, exportText, mimeType);
 
         if (res.success) {
             setResult({
@@ -86,16 +93,20 @@ export function ExportToAurisModal({
                 {/* Content */}
                 <div className="px-6 py-4">
                     <p className="mb-4 text-sm text-muted-foreground">
-                        Exportar <strong className="text-foreground">{fileName}</strong> a un espacio de AurisLM.
-                        El documento será chunkeado e indexado automáticamente.
+                        {contentOverride ? (
+                            <>Exportar <strong className="text-foreground">respuesta de DocChat</strong> a un espacio de AurisLM.</>
+                        ) : (
+                            <>Exportar <strong className="text-foreground">{fileName}</strong> a un espacio de AurisLM.
+                                El documento será chunkeado e indexado automáticamente.</>
+                        )}
                     </p>
 
                     {/* Result banner */}
                     {result && (
                         <div
                             className={`mb-4 flex items-center gap-2 rounded-lg px-4 py-3 text-sm ${result.success
-                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                    : "bg-destructive/10 text-destructive"
+                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                : "bg-destructive/10 text-destructive"
                                 }`}
                         >
                             {result.success ? (

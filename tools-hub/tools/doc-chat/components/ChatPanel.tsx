@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { Send, Square, Trash2, Bot, User, Sparkles } from "lucide-react";
+import { Send, Square, Trash2, Bot, User, Sparkles, ArrowUpRight } from "lucide-react";
 import type { DocChatMessageData } from "../types";
+import { MarkdownRenderer } from "./MarkdownRenderer";
 
 interface ChatPanelProps {
     messages: DocChatMessageData[];
@@ -13,6 +14,7 @@ interface ChatPanelProps {
     onSendMessage: (text: string) => void;
     onStopStreaming: () => void;
     onClearHistory: () => void;
+    onExportMessage: (content: string) => void;
 }
 
 export function ChatPanel({
@@ -24,6 +26,7 @@ export function ChatPanel({
     onSendMessage,
     onStopStreaming,
     onClearHistory,
+    onExportMessage,
 }: ChatPanelProps) {
     const [input, setInput] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -51,7 +54,7 @@ export function ChatPanel({
     return (
         <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border/40 bg-background">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-border/40 bg-muted/20 px-4 py-2.5">
+            <div className="flex shrink-0 items-center justify-between border-b border-border/40 bg-muted/20 px-4 py-2.5">
                 <div className="flex items-center gap-2">
                     <Bot className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Chat con el Documento</span>
@@ -69,7 +72,7 @@ export function ChatPanel({
 
             {/* Role indicator */}
             {isAnalyzingRole && (
-                <div className="flex items-center gap-2 border-b border-border/30 bg-amber-500/5 px-4 py-2">
+                <div className="flex shrink-0 items-center gap-2 border-b border-border/30 bg-amber-500/5 px-4 py-2">
                     <Sparkles className="h-3.5 w-3.5 animate-pulse text-amber-500" />
                     <span className="text-xs text-amber-600 dark:text-amber-400">
                         Analizando el documento para determinar el rol...
@@ -77,7 +80,7 @@ export function ChatPanel({
                 </div>
             )}
             {systemPrompt && !isAnalyzingRole && (
-                <div className="flex items-center gap-2 border-b border-border/30 bg-primary/5 px-4 py-2">
+                <div className="flex shrink-0 items-center gap-2 border-b border-border/30 bg-primary/5 px-4 py-2">
                     <Sparkles className="h-3.5 w-3.5 text-primary" />
                     <span className="line-clamp-1 text-xs text-primary/80">
                         Rol activo: {systemPrompt.slice(0, 100)}...
@@ -86,7 +89,7 @@ export function ChatPanel({
             )}
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border/50">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border/50">
                 {!hasDocument ? (
                     <div className="flex h-full items-center justify-center">
                         <p className="text-center text-sm text-muted-foreground">
@@ -120,12 +123,32 @@ export function ChatPanel({
                                     <p className="mb-0.5 text-xs font-medium text-muted-foreground">
                                         {msg.role === "user" ? "Tú" : "DocChat"}
                                     </p>
-                                    <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap break-words text-sm leading-relaxed">
-                                        {msg.content}
-                                        {msg.isStreaming && (
-                                            <span className="ml-0.5 inline-block h-4 w-1 animate-pulse bg-primary" />
+                                    <div className="text-sm leading-relaxed">
+                                        {msg.role === "assistant" ? (
+                                            <>
+                                                <MarkdownRenderer content={msg.content} />
+                                                {msg.isStreaming && (
+                                                    <span className="ml-0.5 inline-block h-4 w-1 animate-pulse bg-primary" />
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div className="whitespace-pre-wrap break-words">
+                                                {msg.content}
+                                            </div>
                                         )}
                                     </div>
+                                    {/* Export to AurisLM button (only for completed assistant messages) */}
+                                    {msg.role === "assistant" && !msg.isStreaming && msg.content && (
+                                        <button
+                                            onClick={() => onExportMessage(msg.content)}
+                                            className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground/60
+                                             transition-colors hover:text-primary"
+                                            title="Llevar esta respuesta a AurisLM"
+                                        >
+                                            <ArrowUpRight className="h-3 w-3" />
+                                            <span>Llevar a AurisLM</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -135,7 +158,7 @@ export function ChatPanel({
             </div>
 
             {/* Input area */}
-            <div className="border-t border-border/40 bg-muted/10 p-3">
+            <div className="shrink-0 border-t border-border/40 bg-muted/10 p-3">
                 <form onSubmit={handleSubmit} className="flex items-end gap-2">
                     <textarea
                         ref={inputRef}

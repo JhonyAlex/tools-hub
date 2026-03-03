@@ -22,6 +22,7 @@ export function useDocChat() {
     const [isAnalyzingRole, setIsAnalyzingRole] = useState(false);
     const [systemPrompt, setSystemPrompt] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
     const abortRef = useRef<AbortController | null>(null);
 
     // Upload file
@@ -30,6 +31,19 @@ export function useDocChat() {
         setError(null);
         setMessages([]);
         setSystemPrompt(null);
+
+        // Revoke previous PDF blob URL
+        if (pdfBlobUrl) {
+            URL.revokeObjectURL(pdfBlobUrl);
+            setPdfBlobUrl(null);
+        }
+
+        // Create blob URL for PDF files
+        const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        if (isPdf) {
+            const blobUrl = URL.createObjectURL(file);
+            setPdfBlobUrl(blobUrl);
+        }
 
         try {
             const formData = new FormData();
@@ -210,15 +224,18 @@ export function useDocChat() {
     }, []);
 
     const clearSession = useCallback(() => {
+        if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+        setPdfBlobUrl(null);
         setSession(null);
         setMessages([]);
         setSystemPrompt(null);
         setError(null);
-    }, []);
+    }, [pdfBlobUrl]);
 
     return {
         session,
         messages,
+        pdfBlobUrl,
         isUploading,
         isStreaming,
         isAnalyzingRole,

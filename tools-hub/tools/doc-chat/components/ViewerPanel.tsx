@@ -8,6 +8,7 @@ import { SelectionPopup } from "./SelectionPopup";
 interface ViewerPanelProps {
     text: string | null;
     fileName: string | null;
+    pdfUrl: string | null;
     isLoading: boolean;
     onSelectionAction: (instruction: string, selectedText: string) => void;
     onFileUpload: (file: File) => void;
@@ -16,6 +17,7 @@ interface ViewerPanelProps {
 export function ViewerPanel({
     text,
     fileName,
+    pdfUrl,
     isLoading,
     onSelectionAction,
     onFileUpload,
@@ -88,7 +90,41 @@ export function ViewerPanel({
         );
     }
 
-    // Document viewer
+    // PDF native viewer
+    if (pdfUrl) {
+        return (
+            <div className="relative flex h-full flex-col overflow-hidden rounded-lg border border-border/40 bg-background">
+                {/* Header */}
+                <div className="flex items-center gap-2 border-b border-border/40 bg-muted/20 px-4 py-2.5">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="truncate text-sm font-medium">{fileName}</span>
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="ml-auto text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                        Cambiar archivo
+                    </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.txt,.md,.markdown,.csv,.js,.jsx,.ts,.tsx,.html,.css,.xml,.json,.yaml,.yml,.toml,.py,.rb,.go,.rs,.java,.sql,.log,.sh,.bash,.c,.cpp,.h"
+                        onChange={handleFileInput}
+                    />
+                </div>
+
+                {/* PDF iframe */}
+                <iframe
+                    src={pdfUrl}
+                    title={fileName ?? "Visor PDF"}
+                    className="flex-1 border-0"
+                    style={{ width: "100%", height: "100%" }}
+                />
+            </div>
+        );
+    }
+
+    // Text document viewer
     return (
         <div className="relative flex h-full flex-col overflow-hidden rounded-lg border border-border/40 bg-background">
             {/* Header */}
