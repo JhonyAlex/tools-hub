@@ -1,3 +1,5 @@
+"use client";
+
 import { MessageSquare } from "lucide-react";
 import { ToolPageLayout } from "@/core/components/ToolPageLayout";
 import { AurisLMApp } from "@/tools/auris-lm";

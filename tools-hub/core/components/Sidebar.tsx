@@ -195,9 +195,8 @@ export function Sidebar({ categories, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 border-r bg-muted/30 md:flex flex-col transition-all duration-300 ease-in-out",
+        "hidden shrink-0 border-r bg-muted/30 md:flex flex-col transition-all duration-300 ease-in-out h-screen sticky top-0",
         collapsed ? "w-16" : "w-64",
-        collapsed && "relative",
         className
       )}
       onMouseEnter={() => {
@@ -221,13 +220,15 @@ export function Sidebar({ categories, className }: SidebarProps) {
               collapsed={false}
               pathname={pathname}
             />
-            <SidebarFooter collapsed={false} toggle={toggle} />
           </nav>
+          <div className="shrink-0 p-2 border-t border-border/50 bg-background">
+            <SidebarFooter collapsed={false} toggle={toggle} />
+          </div>
         </div>
       )}
 
-      {/* Main nav content */}
-      <nav className="flex flex-col h-full p-2">
+      {/* Main nav content - scrollable */}
+      <nav className="flex-1 overflow-y-auto p-2">
         <SidebarContent
           sortedCategories={sortedCategories}
           isHomeActive={isHomeActive}
@@ -237,7 +238,7 @@ export function Sidebar({ categories, className }: SidebarProps) {
         />
       </nav>
       
-      {/* Footer - Always at bottom */}
+      {/* Footer - Always visible at bottom (sticky) */}
       <div className="shrink-0 p-2 border-t border-border/50 bg-muted/30">
         <SidebarFooter collapsed={collapsed} toggle={toggle} />
       </div>

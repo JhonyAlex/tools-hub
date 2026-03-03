@@ -1,3 +1,5 @@
+"use client";
+
 import { BarChart3 } from "lucide-react";
 import { ToolPageLayout } from "@/core/components/ToolPageLayout";
 import { MaintenanceReportApp } from "@/tools/maintenance-report";

@@ -1,3 +1,5 @@
+"use client";
+
 import { Braces } from "lucide-react";
 import { ToolPageLayout } from "@/core/components/ToolPageLayout";
 import { JsonFormatterApp } from "@/tools/json-formatter";
