@@ -1,10 +1,10 @@
 // ============================================================
-// PDF to Images — Renderiza páginas de PDF a PNG usando pdfjs-dist + canvas
+// PDF to Images — Renderiza páginas de PDF a PNG usando pdfjs-dist + @napi-rs/canvas
 // ============================================================
-// Requiere: npm install pdfjs-dist canvas
-// Ambos paquetes deben estar en serverExternalPackages en next.config.ts
+// Requiere: npm install pdfjs-dist @napi-rs/canvas
+// @napi-rs/canvas tiene binarios precompilados (no necesita Python/node-gyp)
 
-import { createCanvas } from "canvas";
+import { createCanvas } from "@napi-rs/canvas";
 
 const MAX_PAGES = 20;
 const RENDER_SCALE = 2; // ~150 DPI para A4

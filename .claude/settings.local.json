@@ -37,7 +37,13 @@
       "Bash(ls -la /x/Proyectos/herramientas/tools-hub/app/\\\\\\(dashboard\\\\\\)/tools/auris-lm/)",
       "Bash(xargs grep -l \"Error al descargar\\\\|download\\\\?inline\")",
       "Bash(grep -n \"onDownload\" /x/Proyectos/herramientas/tools-hub/tools/auris-lm/components/*.tsx)",
-      "Bash(npm install pdfjs-dist canvas)"
+      "Bash(npm install pdfjs-dist canvas)",
+      "Bash(npm uninstall canvas)",
+      "Bash(npm install @napi-rs/canvas)",
+      "Bash(npm ls @napi-rs/canvas)",
+      "Bash(npm ls canvas)",
+      "Bash(node -e \"const { createCanvas } = require\\(''@napi-rs/canvas''\\); const c = createCanvas\\(100,100\\); console.log\\(typeof c.toBuffer\\); console.log\\(typeof c.encode\\);\")",
+      "Bash(node -e \"const { createCanvas } = require\\(''@napi-rs/canvas''\\); const c = createCanvas\\(100,100\\); const buf = c.toBuffer\\(''image/png''\\); console.log\\(''Buffer size:'', buf.length, ''isBuffer:'', Buffer.isBuffer\\(buf\\)\\);\")"
     ]
   }
 }
