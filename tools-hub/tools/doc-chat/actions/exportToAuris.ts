@@ -1,6 +1,9 @@
 "use server";
 
 import { db } from "@/core/lib/db";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+import { UPLOADS_BASE } from "@/core/lib/uploads";
 
 // ============================================================
 // DocChat -> AurisLM Export Actions
@@ -70,14 +73,30 @@ export async function exportToAuris(
     mimeType: string
 ): Promise<ExportResult> {
     try {
+        // Generate unique document ID and file path
+        const docId = crypto.randomUUID ? crypto.randomUUID() : `doc_${Date.now()}`;
+        const textBuffer = Buffer.from(extractedText, "utf-8");
+        const fileSize = textBuffer.length;
+
+        // Save file to server
+        const spaceUploadsDir = path.join(UPLOADS_BASE, "auris-lm", spaceId);
+        await mkdir(spaceUploadsDir, { recursive: true });
+
+        // Save as .txt file (since we have extracted text)
+        const txtFileName = `${docId}.txt`;
+        const storedPath = path.join("auris-lm", spaceId, txtFileName);
+        const fullPath = path.join(UPLOADS_BASE, storedPath);
+        await writeFile(fullPath, textBuffer);
+
         // Create AurisLMDocument
         const doc = await db.aurisLMDocument.create({
             data: {
+                id: docId,
                 spaceId,
                 originalName: fileName,
-                storedPath: `doc-chat-export/${fileName}`,
-                mimeType,
-                fileSize: Buffer.byteLength(extractedText, "utf-8"),
+                storedPath,
+                mimeType: "text/plain",
+                fileSize,
                 extractedText,
                 status: "ready",
             },
