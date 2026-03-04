@@ -23,10 +23,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/core/types/tool.types";
-import type { ToolCategory } from "@/core/types/tool.types";
+import type { ToolCategory, ToolManifest } from "@/core/types/tool.types";
 import { getCategoryStyle } from "@/core/styles/category-styles";
 import { useSidebar } from "@/core/providers";
-import { useState } from "react";
+import { useFavorites } from "@/core/hooks/useFavorites";
+import { getToolBySlug } from "@/core/registry";
+import { useState, useMemo } from "react";
 
 interface SidebarProps {
   categories: ToolCategory[];
@@ -266,6 +268,14 @@ function SidebarContent({
   pathname,
 }: SidebarContentProps) {
   const searchParams = useSearchParams();
+  const { favorites } = useFavorites();
+
+  // Resolver slugs favoritos a herramientas
+  const favoriteTools = useMemo(() => {
+    return favorites
+      .map((slug) => getToolBySlug(slug))
+      .filter((tool): tool is ToolManifest => tool !== undefined && tool.status !== "hidden");
+  }, [favorites]);
 
   return (
     <div className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden">
@@ -278,10 +288,33 @@ function SidebarContent({
         collapsed={collapsed}
       />
 
-      {/* Quick Access Section */}
+      {/* Favorites Section - Show favorite tools directly */}
+      {favoriteTools.length > 0 && (
+        <CollapsibleSection
+          title="Favoritos"
+          icon={<Star className="h-3.5 w-3.5" />}
+          defaultOpen={true}
+          collapsed={collapsed}
+        >
+          <div className="space-y-0.5">
+            {favoriteTools.map((tool) => (
+              <NavItem
+                key={tool.slug}
+                href={tool.path}
+                icon={<Sparkles className="h-4 w-4" />}
+                label={tool.name}
+                isActive={pathname === tool.path}
+                collapsed={collapsed}
+              />
+            ))}
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Recent Access Section */}
       <CollapsibleSection
         title="Acceso Rápido"
-        icon={<Sparkles className="h-3.5 w-3.5" />}
+        icon={<History className="h-3.5 w-3.5" />}
         defaultOpen={true}
         collapsed={collapsed}
       >
@@ -290,13 +323,6 @@ function SidebarContent({
           icon={<History className="h-4 w-4" />}
           label="Recientes"
           isActive={searchParams.get("filter") === "recent"}
-          collapsed={collapsed}
-        />
-        <NavItem
-          href="/?filter=favorites"
-          icon={<Star className="h-4 w-4" />}
-          label="Favoritas"
-          isActive={searchParams.get("filter") === "favorites"}
           collapsed={collapsed}
         />
       </CollapsibleSection>

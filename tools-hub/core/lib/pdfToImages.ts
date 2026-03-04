@@ -5,7 +5,7 @@
 // @napi-rs/canvas tiene binarios precompilados (no necesita Python/node-gyp)
 
 import { createCanvas } from "@napi-rs/canvas";
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+import { getDocument } from "pdfjs-dist";
 
 const MAX_PAGES = 20;
 const RENDER_SCALE = 2; // ~150 DPI para A4
@@ -15,18 +15,8 @@ const RENDER_SCALE = 2; // ~150 DPI para A4
  * Limitado a MAX_PAGES páginas para evitar timeouts y costos excesivos.
  */
 export async function pdfPagesToPng(pdfBuffer: Buffer): Promise<Buffer[]> {
-  // Configurar worker para Node.js/servidor
-  // Usa la versión legacy sin worker para evitar problemas en Next.js standalone
-  try {
-    // Intentar con worker si está disponible
-    GlobalWorkerOptions.workerSrc = new URL(
-      "../../../node_modules/pdfjs-dist/build/pdf.worker.mjs",
-      import.meta.url
-    ).href;
-  } catch {
-    // Fallback: desactivar worker para in-process rendering
-    GlobalWorkerOptions.disableWorker = true;
-  }
+  // En Node.js/servidor, pdfjs-dist funciona sin necesidad de configurar worker
+  // El worker solo se necesita en navegadores. En servidor usamos procesamiento directo.
 
   const data = new Uint8Array(pdfBuffer);
   const doc = await getDocument({ data, useSystemFonts: true }).promise;
