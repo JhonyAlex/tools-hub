@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/core/types/tool.types";
 import type { ToolCategory } from "@/core/types/tool.types";
+import { getCategoryStyle } from "@/core/styles/category-styles";
 import { useSidebar } from "@/core/providers";
 import { useState } from "react";
 
@@ -41,28 +42,6 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   finance: <Wallet className="h-4 w-4" />,
   design: <Palette className="h-4 w-4" />,
   development: <Code2 className="h-4 w-4" />,
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  generators: "text-amber-500 bg-amber-500/10 border-amber-500/20",
-  reports: "text-blue-500 bg-blue-500/10 border-blue-500/20",
-  utilities: "text-slate-500 bg-slate-500/10 border-slate-500/20",
-  communication: "text-violet-500 bg-violet-500/10 border-violet-500/20",
-  seo: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-  finance: "text-cyan-500 bg-cyan-500/10 border-cyan-500/20",
-  design: "text-pink-500 bg-pink-500/10 border-pink-500/20",
-  development: "text-sky-500 bg-sky-500/10 border-sky-500/20",
-};
-
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  generators: "from-amber-500/20 to-orange-500/20",
-  reports: "from-blue-500/20 to-indigo-500/20",
-  utilities: "from-slate-500/20 to-zinc-500/20",
-  communication: "from-violet-500/20 to-purple-500/20",
-  seo: "from-emerald-500/20 to-teal-500/20",
-  finance: "from-cyan-500/20 to-blue-500/20",
-  design: "from-pink-500/20 to-rose-500/20",
-  development: "from-sky-500/20 to-cyan-500/20",
 };
 
 interface NavItemProps {
@@ -333,8 +312,9 @@ function SidebarContent({
           <div className="space-y-0.5">
             {sortedCategories.map((cat) => {
               const isActive = currentCategory === cat;
-              const colorClass = CATEGORY_COLORS[cat] || CATEGORY_COLORS.utilities;
-              const gradientClass = CATEGORY_GRADIENTS[cat] || CATEGORY_GRADIENTS.utilities;
+              const catStyle = getCategoryStyle(cat);
+              const colorClass = catStyle.sidebarColor;
+              const gradientClass = catStyle.sidebarGradient;
 
               return (
                 <Link

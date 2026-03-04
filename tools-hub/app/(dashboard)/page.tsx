@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   BarChart3,
@@ -14,11 +14,13 @@ import {
   Search,
   LucideIcon,
 } from "lucide-react";
-import { getAllTools, getToolsByCategory, getCategories } from "@/core/registry";
-import { ToolCard, ToolCardCompact } from "@/core/components/ToolCard";
+import { getAllTools, getToolsByCategory, getToolBySlug, getCategories } from "@/core/registry";
+import { ToolCard } from "@/core/components/ToolCard";
 import { CategorySection, CategoryGrid } from "@/core/components/CategorySection";
 import { EmptyState } from "@/core/components/EmptyState";
-import type { ToolCategory } from "@/core/types/tool.types";
+import { useFavorites } from "@/core/hooks/useFavorites";
+import { useRecentTools } from "@/core/hooks/useRecentTools";
+import type { ToolCategory, ToolManifest } from "@/core/types/tool.types";
 import { CATEGORY_LABELS } from "@/core/types/tool.types";
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -32,6 +34,12 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   development: Sparkles,
 };
 
+function resolveTools(slugs: string[]): ToolManifest[] {
+  return slugs
+    .map((slug) => getToolBySlug(slug))
+    .filter((t): t is ToolManifest => t !== undefined && t.status !== "hidden");
+}
+
 export default function DashboardHome() {
   const searchParams = useSearchParams();
   const categoryFilter = searchParams.get("category") as ToolCategory | null;
@@ -39,6 +47,8 @@ export default function DashboardHome() {
 
   const tools = getAllTools();
   const categories = getCategories();
+  const { favorites, toggleFavorite, isFavorite } = useFavorites();
+  const { recentSlugs, trackVisit } = useRecentTools();
 
   // Group tools by category
   const toolsByCategory = useMemo(() => {
@@ -49,7 +59,20 @@ export default function DashboardHome() {
     return grouped;
   }, [categories]);
 
-  // Filtered view
+  const renderToolCard = useCallback(
+    (tool: ToolManifest) => (
+      <ToolCard
+        key={tool.slug}
+        tool={tool}
+        isFavorite={isFavorite(tool.slug)}
+        onToggleFavorite={toggleFavorite}
+        onVisit={trackVisit}
+      />
+    ),
+    [isFavorite, toggleFavorite, trackVisit]
+  );
+
+  // Filtered view by category
   if (categoryFilter) {
     const filteredTools = getToolsByCategory(categoryFilter);
     const Icon = CATEGORY_ICONS[categoryFilter] || Sparkles;
@@ -74,23 +97,22 @@ export default function DashboardHome() {
           />
         ) : (
           <CategoryGrid columns={3}>
-            {filteredTools.map((tool) => (
-              <ToolCard key={tool.slug} tool={tool} />
-            ))}
+            {filteredTools.map(renderToolCard)}
           </CategoryGrid>
         )}
       </div>
     );
   }
 
-  // Recent/Favorites filter (placeholder - will use localStorage in future)
+  // Recent / Favorites filter
   if (filterType === "recent" || filterType === "favorites") {
-    const title = filterType === "recent" ? "Recientemente usadas" : "Favoritas";
-    const description =
-      filterType === "recent"
-        ? "Herramientas que has utilizado recientemente."
-        : "Tus herramientas marcadas como favoritas.";
-    const Icon = filterType === "recent" ? History : Star;
+    const isRecent = filterType === "recent";
+    const title = isRecent ? "Recientemente usadas" : "Favoritas";
+    const description = isRecent
+      ? "Herramientas que has utilizado recientemente."
+      : "Tus herramientas marcadas como favoritas.";
+    const Icon = isRecent ? History : Star;
+    const resolvedTools = resolveTools(isRecent ? recentSlugs : favorites);
 
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
@@ -104,12 +126,22 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        <EmptyState
-          icon={Icon}
-          title="Próximamente"
-          description={`Esta función estará disponible próximamente. Estamos trabajando en ello.`}
-          size="lg"
-        />
+        {resolvedTools.length === 0 ? (
+          <EmptyState
+            icon={Icon}
+            title={isRecent ? "Sin herramientas recientes" : "Sin favoritas"}
+            description={
+              isRecent
+                ? "Aún no has visitado ninguna herramienta. Explora el panel para empezar."
+                : "No tienes herramientas favoritas. Marca una con la estrella para acceder rápidamente."
+            }
+            size="lg"
+          />
+        ) : (
+          <CategoryGrid columns={3}>
+            {resolvedTools.map(renderToolCard)}
+          </CategoryGrid>
+        )}
       </div>
     );
   }
@@ -155,9 +187,7 @@ export default function DashboardHome() {
                 count={categoryTools.length}
               >
                 <CategoryGrid columns={3}>
-                  {categoryTools.map((tool) => (
-                    <ToolCard key={tool.slug} tool={tool} />
-                  ))}
+                  {categoryTools.map(renderToolCard)}
                 </CategoryGrid>
               </CategorySection>
             );

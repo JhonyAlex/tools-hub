@@ -5,6 +5,7 @@ import { ChevronRight, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ToolCategory } from "@/core/types/tool.types";
 import { CATEGORY_LABELS } from "@/core/types/tool.types";
+import { getCategoryStyle } from "@/core/styles/category-styles";
 
 interface CategorySectionProps {
   category: ToolCategory;
@@ -15,57 +16,6 @@ interface CategorySectionProps {
   count?: number;
 }
 
-const CATEGORY_STYLES: Record<string, { gradient: string; text: string; border: string; iconBg: string }> = {
-  generators: {
-    gradient: "from-amber-500/10 via-orange-500/5 to-transparent",
-    text: "text-amber-600 dark:text-amber-400",
-    border: "border-amber-500/20",
-    iconBg: "bg-amber-500/10",
-  },
-  reports: {
-    gradient: "from-blue-500/10 via-indigo-500/5 to-transparent",
-    text: "text-blue-600 dark:text-blue-400",
-    border: "border-blue-500/20",
-    iconBg: "bg-blue-500/10",
-  },
-  utilities: {
-    gradient: "from-slate-500/10 via-zinc-500/5 to-transparent",
-    text: "text-slate-600 dark:text-slate-400",
-    border: "border-slate-500/20",
-    iconBg: "bg-slate-500/10",
-  },
-  communication: {
-    gradient: "from-violet-500/10 via-purple-500/5 to-transparent",
-    text: "text-violet-600 dark:text-violet-400",
-    border: "border-violet-500/20",
-    iconBg: "bg-violet-500/10",
-  },
-  seo: {
-    gradient: "from-emerald-500/10 via-teal-500/5 to-transparent",
-    text: "text-emerald-600 dark:text-emerald-400",
-    border: "border-emerald-500/20",
-    iconBg: "bg-emerald-500/10",
-  },
-  finance: {
-    gradient: "from-cyan-500/10 via-blue-500/5 to-transparent",
-    text: "text-cyan-600 dark:text-cyan-400",
-    border: "border-cyan-500/20",
-    iconBg: "bg-cyan-500/10",
-  },
-  design: {
-    gradient: "from-pink-500/10 via-rose-500/5 to-transparent",
-    text: "text-pink-600 dark:text-pink-400",
-    border: "border-pink-500/20",
-    iconBg: "bg-pink-500/10",
-  },
-  development: {
-    gradient: "from-sky-500/10 via-cyan-500/5 to-transparent",
-    text: "text-sky-600 dark:text-sky-400",
-    border: "border-sky-500/20",
-    iconBg: "bg-sky-500/10",
-  },
-};
-
 export function CategorySection({
   category,
   icon: Icon,
@@ -74,14 +24,14 @@ export function CategorySection({
   showViewAll = true,
   count,
 }: CategorySectionProps) {
-  const styles = CATEGORY_STYLES[category] || CATEGORY_STYLES.utilities;
+  const styles = getCategoryStyle(category);
   const label = CATEGORY_LABELS[category];
 
   return (
     <section
       className={cn(
         "relative overflow-hidden rounded-2xl border bg-gradient-to-br p-5 sm:p-6",
-        styles.gradient,
+        styles.sectionGradient,
         styles.border,
         className
       )}

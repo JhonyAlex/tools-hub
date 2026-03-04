@@ -2,66 +2,20 @@
 
 import Link from "next/link";
 import * as LucideIcons from "lucide-react";
+import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { ToolManifest } from "@/core/types/tool.types";
 import { CATEGORY_LABELS } from "@/core/types/tool.types";
+import { getCategoryStyle } from "@/core/styles/category-styles";
 
 interface ToolCardProps {
   tool: ToolManifest;
   className?: string;
+  isFavorite?: boolean;
+  onToggleFavorite?: (slug: string) => void;
+  onVisit?: (slug: string) => void;
 }
-
-const CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string; gradient: string }> = {
-  generators: {
-    bg: "bg-amber-500/10",
-    text: "text-amber-600 dark:text-amber-400",
-    border: "border-amber-500/20",
-    gradient: "from-amber-500/5 to-orange-500/5",
-  },
-  reports: {
-    bg: "bg-blue-500/10",
-    text: "text-blue-600 dark:text-blue-400",
-    border: "border-blue-500/20",
-    gradient: "from-blue-500/5 to-indigo-500/5",
-  },
-  utilities: {
-    bg: "bg-slate-500/10",
-    text: "text-slate-600 dark:text-slate-400",
-    border: "border-slate-500/20",
-    gradient: "from-slate-500/5 to-zinc-500/5",
-  },
-  communication: {
-    bg: "bg-violet-500/10",
-    text: "text-violet-600 dark:text-violet-400",
-    border: "border-violet-500/20",
-    gradient: "from-violet-500/5 to-purple-500/5",
-  },
-  seo: {
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-600 dark:text-emerald-400",
-    border: "border-emerald-500/20",
-    gradient: "from-emerald-500/5 to-teal-500/5",
-  },
-  finance: {
-    bg: "bg-cyan-500/10",
-    text: "text-cyan-600 dark:text-cyan-400",
-    border: "border-cyan-500/20",
-    gradient: "from-cyan-500/5 to-blue-500/5",
-  },
-  design: {
-    bg: "bg-pink-500/10",
-    text: "text-pink-600 dark:text-pink-400",
-    border: "border-pink-500/20",
-    gradient: "from-pink-500/5 to-rose-500/5",
-  },
-  development: {
-    bg: "bg-sky-500/10",
-    text: "text-sky-600 dark:text-sky-400",
-    border: "border-sky-500/20",
-    gradient: "from-sky-500/5 to-cyan-500/5",
-  },
-};
 
 function getIcon(iconName: string) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,12 +25,13 @@ function getIcon(iconName: string) {
   return Icon ? <Icon className="h-6 w-6" /> : <LucideIcons.Box className="h-6 w-6" />;
 }
 
-export function ToolCard({ tool, className }: ToolCardProps) {
-  const styles = CATEGORY_STYLES[tool.category] || CATEGORY_STYLES.utilities;
+export function ToolCard({ tool, className, isFavorite, onToggleFavorite, onVisit }: ToolCardProps) {
+  const styles = getCategoryStyle(tool.category);
 
   return (
     <Link
       href={tool.path}
+      onClick={() => onVisit?.(tool.slug)}
       className={cn(
         "group relative flex flex-col rounded-2xl border bg-card p-5 transition-all duration-300",
         "hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-0.5",
@@ -109,22 +64,42 @@ export function ToolCard({ tool, className }: ToolCardProps) {
             {getIcon(tool.icon)}
           </div>
 
-          <div className="flex flex-col items-end gap-1.5">
-            {tool.status === "beta" && (
-              <Badge
-                variant="secondary"
-                className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
+          <div className="flex items-start gap-1.5">
+            <div className="flex flex-col items-end gap-1.5">
+              {tool.status === "beta" && (
+                <Badge
+                  variant="secondary"
+                  className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800"
+                >
+                  Beta
+                </Badge>
+              )}
+              {tool.status === "maintenance" && (
+                <Badge
+                  variant="secondary"
+                  className="bg-red-100 text-red-700 border-red-200 text-[10px] dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
+                >
+                  Mantenimiento
+                </Badge>
+              )}
+            </div>
+            {onToggleFavorite && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggleFavorite(tool.slug);
+                }}
+                className={cn(
+                  "rounded-lg p-1.5 transition-colors hover:bg-accent",
+                  isFavorite
+                    ? "text-amber-500"
+                    : "text-muted-foreground/40 hover:text-muted-foreground"
+                )}
+                aria-label={isFavorite ? "Quitar de favoritas" : "Agregar a favoritas"}
               >
-                Beta
-              </Badge>
-            )}
-            {tool.status === "maintenance" && (
-              <Badge
-                variant="secondary"
-                className="bg-red-100 text-red-700 border-red-200 text-[10px] dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
-              >
-                Mantenimiento
-              </Badge>
+                <Star className="h-4 w-4" fill={isFavorite ? "currentColor" : "none"} />
+              </button>
             )}
           </div>
         </div>
@@ -188,14 +163,18 @@ export function ToolCard({ tool, className }: ToolCardProps) {
 interface ToolCardCompactProps {
   tool: ToolManifest;
   className?: string;
+  isFavorite?: boolean;
+  onToggleFavorite?: (slug: string) => void;
+  onVisit?: (slug: string) => void;
 }
 
-export function ToolCardCompact({ tool, className }: ToolCardCompactProps) {
-  const styles = CATEGORY_STYLES[tool.category] || CATEGORY_STYLES.utilities;
+export function ToolCardCompact({ tool, className, isFavorite, onToggleFavorite, onVisit }: ToolCardCompactProps) {
+  const styles = getCategoryStyle(tool.category);
 
   return (
     <Link
       href={tool.path}
+      onClick={() => onVisit?.(tool.slug)}
       className={cn(
         "group flex items-center gap-3 rounded-xl border bg-card p-3 transition-all duration-200",
         "hover:shadow-md hover:border-primary/20",
@@ -225,6 +204,24 @@ export function ToolCardCompact({ tool, className }: ToolCardCompactProps) {
           {tool.description}
         </p>
       </div>
+      {onToggleFavorite && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleFavorite(tool.slug);
+          }}
+          className={cn(
+            "shrink-0 rounded-lg p-1.5 transition-colors hover:bg-accent",
+            isFavorite
+              ? "text-amber-500"
+              : "text-muted-foreground/40 hover:text-muted-foreground"
+          )}
+          aria-label={isFavorite ? "Quitar de favoritas" : "Agregar a favoritas"}
+        >
+          <Star className="h-4 w-4" fill={isFavorite ? "currentColor" : "none"} />
+        </button>
+      )}
     </Link>
   );
 }

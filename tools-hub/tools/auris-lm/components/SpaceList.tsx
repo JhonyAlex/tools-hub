@@ -133,7 +133,7 @@ export function SpaceList({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium hover:bg-accent transition-colors"
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors"
                       onClick={() => {
                         onEditClick(space);
                         setOpenMenuId(null);

@@ -16,18 +16,8 @@ import { Sidebar } from "./Sidebar";
 import { getCategories } from "@/core/registry";
 import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/core/types/tool.types";
+import { getCategoryStyle } from "@/core/styles/category-styles";
 import { useState } from "react";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  generators: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  reports: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  utilities: "bg-slate-500/10 text-slate-600 border-slate-500/20",
-  communication: "bg-violet-500/10 text-violet-600 border-violet-500/20",
-  seo: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  finance: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20",
-  design: "bg-pink-500/10 text-pink-600 border-pink-500/20",
-  development: "bg-sky-500/10 text-sky-600 border-sky-500/20",
-};
 
 export function Header() {
   const { toolInfo } = useToolInfo();
@@ -83,7 +73,7 @@ export function Header() {
                     className={cn(
                       "flex h-7 w-7 items-center justify-center rounded-lg border shrink-0",
                       toolInfo.category
-                        ? CATEGORY_COLORS[toolInfo.category]?.split(" ")[0]
+                        ? cn(getCategoryStyle(toolInfo.category).bg, getCategoryStyle(toolInfo.category).border)
                         : "bg-primary/10"
                     )}
                   >
@@ -91,7 +81,7 @@ export function Header() {
                       className={cn(
                         "h-3.5 w-3.5",
                         toolInfo.category
-                          ? CATEGORY_COLORS[toolInfo.category]?.split(" ")[1]
+                          ? getCategoryStyle(toolInfo.category).text
                           : "text-primary"
                       )}
                     />

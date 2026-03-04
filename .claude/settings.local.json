@@ -30,7 +30,11 @@
       "Bash(ls .env*)",
       "Bash(npx tsc --noEmit --pretty)",
       "Bash(npx next build --no-lint)",
-      "Bash(node -e \"const p=require\\(''./package.json''\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\)\")"
+      "Bash(node -e \"const p=require\\(''./package.json''\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\)\")",
+      "Bash(ls -la /x/Proyectos/herramientas/tools-hub/app/\\\\\\(dashboard\\\\\\)/)",
+      "Bash(xargs cat)",
+      "Bash(ls -la /x/Proyectos/herramientas/tools-hub/app/\\\\\\(dashboard\\\\\\)/tools/)",
+      "Bash(ls -la /x/Proyectos/herramientas/tools-hub/app/\\\\\\(dashboard\\\\\\)/tools/auris-lm/)"
     ]
   }
 }
