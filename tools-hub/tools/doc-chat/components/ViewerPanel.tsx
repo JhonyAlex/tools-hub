@@ -10,6 +10,7 @@ interface ViewerPanelProps {
     text: string | null;
     fileName: string | null;
     pdfUrl: string | null;
+    imageUrl: string | null;
     isLoading: boolean;
     onSelectionAction: (instruction: string, selectedText: string) => void;
     onFileUpload: (file: File) => void;
@@ -20,6 +21,7 @@ export function ViewerPanel({
     text,
     fileName,
     pdfUrl,
+    imageUrl,
     isLoading,
     onSelectionAction,
     onFileUpload,
@@ -61,7 +63,7 @@ export function ViewerPanel({
                 <p className="mb-4 text-center text-sm text-muted-foreground">
                     Arrastra un archivo aquí o haz clic para seleccionar.
                     <br />
-                    <span className="text-xs">PDF, TXT, MD, JS, TS, CSV, JSON...</span>
+                    <span className="text-xs">PDF, TXT, Imágenes (PNG, JPG, WEBP), MD, JS, TS, CSV...</span>
                 </p>
                 <button
                     onClick={() => fileInputRef.current?.click()}
@@ -74,7 +76,7 @@ export function ViewerPanel({
                     ref={fileInputRef}
                     type="file"
                     className="hidden"
-                    accept=".pdf,.txt,.md,.markdown,.csv,.js,.jsx,.ts,.tsx,.html,.css,.xml,.json,.yaml,.yml,.toml,.py,.rb,.go,.rs,.java,.sql,.log,.sh,.bash,.c,.cpp,.h"
+                    accept=".pdf,.txt,.md,.markdown,.csv,.js,.jsx,.ts,.tsx,.html,.css,.xml,.json,.yaml,.yml,.toml,.py,.rb,.go,.rs,.java,.sql,.log,.sh,.bash,.c,.cpp,.h,.png,.jpg,.jpeg,.webp"
                     onChange={handleFileInput}
                 />
             </div>
@@ -122,7 +124,7 @@ export function ViewerPanel({
                         ref={fileInputRef}
                         type="file"
                         className="hidden"
-                        accept=".pdf,.txt,.md,.markdown,.csv,.js,.jsx,.ts,.tsx,.html,.css,.xml,.json,.yaml,.yml,.toml,.py,.rb,.go,.rs,.java,.sql,.log,.sh,.bash,.c,.cpp,.h"
+                        accept=".pdf,.txt,.md,.markdown,.csv,.js,.jsx,.ts,.tsx,.html,.css,.xml,.json,.yaml,.yml,.toml,.py,.rb,.go,.rs,.java,.sql,.log,.sh,.bash,.c,.cpp,.h,.png,.jpg,.jpeg,.webp"
                         onChange={handleFileInput}
                     />
                 </div>
@@ -134,6 +136,53 @@ export function ViewerPanel({
                     className="flex-1 border-0"
                     style={{ width: "100%", height: "100%" }}
                 />
+            </div>
+        );
+    }
+
+    // Image viewer
+    if (imageUrl) {
+        return (
+            <div className="relative flex h-full flex-col overflow-hidden rounded-lg border border-border/40 bg-background">
+                {/* Header */}
+                <div className="flex items-center gap-2 border-b border-border/40 bg-muted/20 px-4 py-2.5">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="truncate text-sm font-medium">{fileName}</span>
+                    <div className="ml-auto flex items-center gap-2">
+                        {onExportDocument && (
+                            <button
+                                onClick={onExportDocument}
+                                className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                                <Send className="h-3 w-3" />
+                                Llevar a AurisLM
+                            </button>
+                        )}
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                            Cambiar archivo
+                        </button>
+                    </div>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.txt,.md,.markdown,.csv,.js,.jsx,.ts,.tsx,.html,.css,.xml,.json,.yaml,.yml,.toml,.py,.rb,.go,.rs,.java,.sql,.log,.sh,.bash,.c,.cpp,.h,.png,.jpg,.jpeg,.webp"
+                        onChange={handleFileInput}
+                    />
+                </div>
+
+                {/* Image display */}
+                <div className="flex flex-1 items-center justify-center overflow-auto bg-muted/10 p-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={imageUrl}
+                        alt={fileName ?? "Imagen subida"}
+                        className="max-h-full max-w-full object-contain rounded"
+                    />
+                </div>
             </div>
         );
     }
@@ -166,7 +215,7 @@ export function ViewerPanel({
                     ref={fileInputRef}
                     type="file"
                     className="hidden"
-                    accept=".pdf,.txt,.md,.markdown,.csv,.js,.jsx,.ts,.tsx,.html,.css,.xml,.json,.yaml,.yml,.toml,.py,.rb,.go,.rs,.java,.sql,.log,.sh,.bash,.c,.cpp,.h"
+                    accept=".pdf,.txt,.md,.markdown,.csv,.js,.jsx,.ts,.tsx,.html,.css,.xml,.json,.yaml,.yml,.toml,.py,.rb,.go,.rs,.java,.sql,.log,.sh,.bash,.c,.cpp,.h,.png,.jpg,.jpeg,.webp"
                     onChange={handleFileInput}
                 />
             </div>

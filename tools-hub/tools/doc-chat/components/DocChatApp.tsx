@@ -12,6 +12,7 @@ export function DocChatApp() {
         session,
         messages,
         pdfBlobUrl,
+        imageBlobUrl,
         isUploading,
         isStreaming,
         isAnalyzingRole,
@@ -59,6 +60,7 @@ export function DocChatApp() {
                         text={session?.extractedText ?? null}
                         fileName={session?.fileName ?? null}
                         pdfUrl={pdfBlobUrl}
+                        imageUrl={imageBlobUrl}
                         isLoading={isUploading}
                         onSelectionAction={handleSelectionAction}
                         onFileUpload={uploadFile}

@@ -23,8 +23,10 @@ export function useDocChat() {
     const [systemPrompt, setSystemPrompt] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+    const [imageBlobUrl, setImageBlobUrl] = useState<string | null>(null);
     const abortRef = useRef<AbortController | null>(null);
     const pdfBlobUrlRef = useRef<string | null>(null);
+    const imageBlobUrlRef = useRef<string | null>(null);
 
     // Upload file
     const uploadFile = useCallback(async (file: File) => {
@@ -33,19 +35,29 @@ export function useDocChat() {
         setMessages([]);
         setSystemPrompt(null);
 
-        // Revoke previous PDF blob URL (use ref to avoid stale closure)
+        // Revoke previous blob URLs (use refs to avoid stale closures)
         if (pdfBlobUrlRef.current) {
             URL.revokeObjectURL(pdfBlobUrlRef.current);
             pdfBlobUrlRef.current = null;
         }
         setPdfBlobUrl(null);
+        if (imageBlobUrlRef.current) {
+            URL.revokeObjectURL(imageBlobUrlRef.current);
+            imageBlobUrlRef.current = null;
+        }
+        setImageBlobUrl(null);
 
-        // Create blob URL for PDF files
+        // Create blob URL for preview
         const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        const isImage = file.type.startsWith("image/");
         if (isPdf) {
             const blobUrl = URL.createObjectURL(file);
             pdfBlobUrlRef.current = blobUrl;
             setPdfBlobUrl(blobUrl);
+        } else if (isImage) {
+            const blobUrl = URL.createObjectURL(file);
+            imageBlobUrlRef.current = blobUrl;
+            setImageBlobUrl(blobUrl);
         }
 
         try {
@@ -230,6 +242,9 @@ export function useDocChat() {
         if (pdfBlobUrlRef.current) URL.revokeObjectURL(pdfBlobUrlRef.current);
         pdfBlobUrlRef.current = null;
         setPdfBlobUrl(null);
+        if (imageBlobUrlRef.current) URL.revokeObjectURL(imageBlobUrlRef.current);
+        imageBlobUrlRef.current = null;
+        setImageBlobUrl(null);
         setSession(null);
         setMessages([]);
         setSystemPrompt(null);
@@ -240,6 +255,7 @@ export function useDocChat() {
         session,
         messages,
         pdfBlobUrl,
+        imageBlobUrl,
         isUploading,
         isStreaming,
         isAnalyzingRole,

@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
-import { Upload, FileAudio, FileText } from "lucide-react";
+import { Upload, FileAudio, FileText, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -10,7 +10,7 @@ interface UploadDropzoneProps {
   uploadProgress: number;
 }
 
-const ACCEPT = ".pdf,.txt,.mp3,.wav,.m4a,.ogg,.webm";
+const ACCEPT = ".pdf,.txt,.mp3,.wav,.m4a,.ogg,.webm,.png,.jpg,.jpeg,.webp";
 const MAX_SIZE_MB = 50;
 
 export function UploadDropzone({
@@ -74,6 +74,7 @@ export function UploadDropzone({
       >
         <div className="flex items-center gap-3 text-muted-foreground">
           <FileText className="size-5" />
+          <ImageIcon className="size-5" />
           <Upload className="size-6 text-primary" />
           <FileAudio className="size-5" />
         </div>
@@ -82,7 +83,7 @@ export function UploadDropzone({
             Arrastra archivos aquí
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            PDF, TXT, MP3, WAV, M4A, OGG, WEBM · máx. {MAX_SIZE_MB}MB
+            PDF, TXT, Imágenes, Audio · máx. {MAX_SIZE_MB}MB
           </p>
         </div>
         <Button

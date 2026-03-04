@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/core/lib/db";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import { extractPdfText } from "@/tools/auris-lm/lib/pdfExtractor";
+import { extractPdfText, extractDocumentText } from "@/tools/auris-lm/lib/pdfExtractor";
 import { chunkText, estimateTokens } from "@/tools/auris-lm/lib/ragEngine";
 import { UPLOADS_BASE } from "@/core/lib/uploads";
 
@@ -18,6 +18,9 @@ const ACCEPTED_TYPES = new Set([
   "audio/x-m4a",
   "audio/webm",
   "video/webm",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
 ]);
 
 // GET /api/auris-lm/spaces/[id]/documents
@@ -73,8 +76,9 @@ export async function POST(
     const isAudio = mimeType.startsWith("audio/") || mimeType.startsWith("video/webm");
     const isPdf = mimeType === "application/pdf";
     const isText = mimeType === "text/plain";
+    const isImage = mimeType.startsWith("image/");
 
-    if (!ACCEPTED_TYPES.has(mimeType) && !isAudio && !isPdf && !isText) {
+    if (!ACCEPTED_TYPES.has(mimeType) && !isAudio && !isPdf && !isText && !isImage) {
       return NextResponse.json(
         { error: `Tipo de archivo no soportado: ${mimeType}` },
         { status: 400 }
@@ -110,7 +114,7 @@ export async function POST(
     // Use setImmediate to ensure the HTTP response is flushed before processing starts.
     // In Next.js standalone (Docker Node.js process), this runs reliably.
     setImmediate(() => {
-      void processDocument(docId, buffer, mimeType, spaceId, isAudio, isPdf, isText);
+      void processDocument(docId, buffer, mimeType, spaceId, isAudio, isPdf, isText, isImage);
     });
 
     return NextResponse.json({ document: doc }, { status: 201 });
@@ -127,13 +131,15 @@ async function processDocument(
   spaceId: string,
   isAudio: boolean,
   isPdf: boolean,
-  isText: boolean
+  isText: boolean,
+  isImage: boolean
 ) {
   try {
     let extractedText = "";
 
-    if (isPdf) {
-      extractedText = await extractPdfText(buffer);
+    if (isImage || isPdf) {
+      // Usa extractDocumentText para imágenes (OCR directo) y PDFs (texto + OCR híbrido)
+      extractedText = await extractDocumentText(buffer, mimeType);
     } else if (isText) {
       extractedText = buffer.toString("utf-8");
     } else if (isAudio) {
