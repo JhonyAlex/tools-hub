@@ -216,7 +216,7 @@ export function ChatPanel({
             </div>
           )}
 
-          <div className="relative group transition-all">
+          <div className="flex items-end gap-2 group transition-all">
             <textarea
               ref={inputRef}
               rows={1}
@@ -230,7 +230,7 @@ export function ChatPanel({
               placeholder={isStreaming ? "Auris está pensando..." : "Escribe tu pregunta aquí..."}
               disabled={isStreaming}
               className={cn(
-                "w-full resize-none rounded-2xl border bg-card/50 backdrop-blur-sm px-5 py-4 pr-14 text-sm outline-none transition-all shadow-lg",
+                "flex-1 resize-none rounded-2xl border bg-card/50 backdrop-blur-sm px-5 py-4 text-sm outline-none transition-all shadow-lg",
                 "placeholder:text-muted-foreground/60",
                 "focus:border-primary focus:ring-4 focus:ring-primary/10",
                 "disabled:opacity-50",
@@ -238,7 +238,7 @@ export function ChatPanel({
               )}
             />
 
-            <div className="absolute right-2.5 bottom-2.5">
+            <div className="shrink-0 pb-2">
               {isStreaming ? (
                 <Button
                   size="icon"

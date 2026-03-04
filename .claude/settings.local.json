@@ -34,7 +34,9 @@
       "Bash(ls -la /x/Proyectos/herramientas/tools-hub/app/\\\\\\(dashboard\\\\\\)/)",
       "Bash(xargs cat)",
       "Bash(ls -la /x/Proyectos/herramientas/tools-hub/app/\\\\\\(dashboard\\\\\\)/tools/)",
-      "Bash(ls -la /x/Proyectos/herramientas/tools-hub/app/\\\\\\(dashboard\\\\\\)/tools/auris-lm/)"
+      "Bash(ls -la /x/Proyectos/herramientas/tools-hub/app/\\\\\\(dashboard\\\\\\)/tools/auris-lm/)",
+      "Bash(xargs grep -l \"Error al descargar\\\\|download\\\\?inline\")",
+      "Bash(grep -n \"onDownload\" /x/Proyectos/herramientas/tools-hub/tools/auris-lm/components/*.tsx)"
     ]
   }
 }

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/core/lib/db";
 import { readFile } from "fs/promises";
 import path from "path";
-
-const UPLOADS_BASE = process.env.UPLOADS_DIR ?? "/app/uploads";
+import { UPLOADS_BASE } from "@/core/lib/uploads";
 
 // GET /api/auris-lm/spaces/[id]/documents/[docId]/download
 // Supports ?inline=true for serving files inline (PDF viewer)

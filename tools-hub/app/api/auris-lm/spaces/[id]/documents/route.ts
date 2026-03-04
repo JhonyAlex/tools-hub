@@ -4,8 +4,7 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { extractPdfText } from "@/tools/auris-lm/lib/pdfExtractor";
 import { chunkText, estimateTokens } from "@/tools/auris-lm/lib/ragEngine";
-
-const UPLOADS_BASE = process.env.UPLOADS_DIR ?? "/app/uploads";
+import { UPLOADS_BASE } from "@/core/lib/uploads";
 
 const ACCEPTED_TYPES = new Set([
   "application/pdf",
