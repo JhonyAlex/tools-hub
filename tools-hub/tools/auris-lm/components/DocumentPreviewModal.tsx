@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, FileText, FileAudio, Copy, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { MarkdownRenderer } from "@/tools/doc-chat/components/MarkdownRenderer";
 import type { AurisDocument } from "../lib/useDocuments";
 
 interface DocumentWithText extends AurisDocument {
@@ -107,7 +108,7 @@ export function DocumentPreviewModal({
           {/* PDF inline viewer */}
           {!loading && !error && doc.mimeType === "application/pdf" && (
             <iframe
-              src={`/api/auris-lm/spaces/${spaceId}/documents/${doc.id}/preview`}
+              src={`/api/auris-lm/spaces/${spaceId}/documents/${doc.id}/download?inline=true`}
               title={doc.originalName}
               className="w-full h-full min-h-[60vh] border-0 rounded-lg"
             />
@@ -128,9 +129,15 @@ export function DocumentPreviewModal({
                 </div>
               )}
               {data.status === "ready" && data.extractedText ? (
-                <pre className="whitespace-pre-wrap text-sm text-foreground font-sans leading-relaxed">
-                  {data.extractedText}
-                </pre>
+                doc.originalName && /\.(md|markdown)$/i.test(doc.originalName) ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none text-foreground leading-relaxed">
+                    <MarkdownRenderer content={data.extractedText} />
+                  </div>
+                ) : (
+                  <pre className="whitespace-pre-wrap text-sm text-foreground font-sans leading-relaxed">
+                    {data.extractedText}
+                  </pre>
+                )
               ) : data.status === "ready" && !data.extractedText ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">
                   No hay texto disponible para este documento.

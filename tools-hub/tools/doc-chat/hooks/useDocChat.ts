@@ -24,6 +24,7 @@ export function useDocChat() {
     const [error, setError] = useState<string | null>(null);
     const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
     const abortRef = useRef<AbortController | null>(null);
+    const pdfBlobUrlRef = useRef<string | null>(null);
 
     // Upload file
     const uploadFile = useCallback(async (file: File) => {
@@ -32,16 +33,18 @@ export function useDocChat() {
         setMessages([]);
         setSystemPrompt(null);
 
-        // Revoke previous PDF blob URL
-        if (pdfBlobUrl) {
-            URL.revokeObjectURL(pdfBlobUrl);
-            setPdfBlobUrl(null);
+        // Revoke previous PDF blob URL (use ref to avoid stale closure)
+        if (pdfBlobUrlRef.current) {
+            URL.revokeObjectURL(pdfBlobUrlRef.current);
+            pdfBlobUrlRef.current = null;
         }
+        setPdfBlobUrl(null);
 
         // Create blob URL for PDF files
         const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
         if (isPdf) {
             const blobUrl = URL.createObjectURL(file);
+            pdfBlobUrlRef.current = blobUrl;
             setPdfBlobUrl(blobUrl);
         }
 
@@ -224,13 +227,14 @@ export function useDocChat() {
     }, []);
 
     const clearSession = useCallback(() => {
-        if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+        if (pdfBlobUrlRef.current) URL.revokeObjectURL(pdfBlobUrlRef.current);
+        pdfBlobUrlRef.current = null;
         setPdfBlobUrl(null);
         setSession(null);
         setMessages([]);
         setSystemPrompt(null);
         setError(null);
-    }, [pdfBlobUrl]);
+    }, []);
 
     return {
         session,

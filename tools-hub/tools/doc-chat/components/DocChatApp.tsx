@@ -78,6 +78,7 @@ export function DocChatApp() {
                         onStopStreaming={stopStreaming}
                         onClearHistory={clearHistory}
                         onExportMessage={handleExportMessage}
+                        onSelectionAction={handleSelectionAction}
                     />
                 </div>
             </div>

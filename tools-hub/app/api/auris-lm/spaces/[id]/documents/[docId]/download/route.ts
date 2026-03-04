@@ -6,12 +6,14 @@ import path from "path";
 const UPLOADS_BASE = process.env.UPLOADS_DIR ?? "/app/uploads";
 
 // GET /api/auris-lm/spaces/[id]/documents/[docId]/download
+// Supports ?inline=true for serving files inline (PDF viewer)
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string; docId: string }> }
 ) {
   try {
     const { id: spaceId, docId } = await params;
+    const inline = req.nextUrl.searchParams.get("inline") === "true";
 
     const doc = await db.aurisLMDocument.findFirst({
       where: { id: docId, spaceId },
@@ -23,10 +25,14 @@ export async function GET(
     const fullPath = path.join(UPLOADS_BASE, doc.storedPath);
     const buffer = await readFile(fullPath);
 
+    const disposition = inline
+      ? `inline; filename="${encodeURIComponent(doc.originalName)}"`
+      : `attachment; filename="${encodeURIComponent(doc.originalName)}"`;
+
     return new NextResponse(buffer, {
       headers: {
         "Content-Type": doc.mimeType,
-        "Content-Disposition": `attachment; filename="${encodeURIComponent(doc.originalName)}"`,
+        "Content-Disposition": disposition,
         "Content-Length": String(buffer.length),
       },
     });

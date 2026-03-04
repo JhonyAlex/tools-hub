@@ -4,6 +4,7 @@ import React, { useRef } from "react";
 import { FileText, Upload, Send } from "lucide-react";
 import { useTextSelection } from "../hooks/useTextSelection";
 import { SelectionPopup } from "./SelectionPopup";
+import { MarkdownRenderer } from "./MarkdownRenderer";
 
 interface ViewerPanelProps {
     text: string | null;
@@ -183,10 +184,16 @@ export function ViewerPanel({
                     onAction={onSelectionAction}
                     onClose={clear}
                 />
-                <div className="prose prose-sm dark:prose-invert max-w-none select-text whitespace-pre-wrap
-                        break-words font-mono text-[13px] leading-relaxed text-foreground/90">
-                    {text}
-                </div>
+                {fileName && /\.(md|markdown)$/i.test(fileName) ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none select-text leading-relaxed text-foreground/90">
+                        <MarkdownRenderer content={text!} />
+                    </div>
+                ) : (
+                    <div className="prose prose-sm dark:prose-invert max-w-none select-text whitespace-pre-wrap
+                            break-words font-mono text-[13px] leading-relaxed text-foreground/90">
+                        {text}
+                    </div>
+                )}
             </div>
         </div>
     );

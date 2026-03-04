@@ -4,6 +4,8 @@ import React, { useRef, useEffect, useState } from "react";
 import { Send, Square, Trash2, Bot, User, Sparkles, ArrowUpRight, Copy, Check, ClipboardList, Key, ListChecks, HelpCircle } from "lucide-react";
 import type { DocChatMessageData } from "../types";
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { useTextSelection } from "../hooks/useTextSelection";
+import { SelectionPopup } from "./SelectionPopup";
 
 interface ChatPanelProps {
     messages: DocChatMessageData[];
@@ -15,6 +17,7 @@ interface ChatPanelProps {
     onStopStreaming: () => void;
     onClearHistory: () => void;
     onExportMessage: (content: string) => void;
+    onSelectionAction: (instruction: string, selectedText: string) => void;
 }
 
 export function ChatPanel({
@@ -27,11 +30,14 @@ export function ChatPanel({
     onStopStreaming,
     onClearHistory,
     onExportMessage,
+    onSelectionAction,
 }: ChatPanelProps) {
     const [input, setInput] = useState("");
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+    const { selectedText, position, isVisible, clear } = useTextSelection(messagesContainerRef);
 
     const handleCopyMessage = async (id: string, content: string) => {
         await navigator.clipboard.writeText(content);
@@ -103,7 +109,17 @@ export function ChatPanel({
             )}
 
             {/* Messages */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border/50">
+            <div
+                ref={messagesContainerRef}
+                className="relative min-h-0 flex-1 overflow-y-auto px-4 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border/50"
+            >
+                <SelectionPopup
+                    position={position}
+                    isVisible={isVisible}
+                    selectedText={selectedText}
+                    onAction={onSelectionAction}
+                    onClose={clear}
+                />
                 {!hasDocument ? (
                     <div className="flex h-full items-center justify-center">
                         <p className="text-center text-sm text-muted-foreground">
