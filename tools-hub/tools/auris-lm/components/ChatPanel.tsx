@@ -212,7 +212,7 @@ export function ChatPanel({
           {!hasDocuments && (
             <div className="mb-3 flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] font-medium text-amber-600 dark:text-amber-400 animate-bounce">
               <AlertCircle className="size-3.5" />
-              Sube documentos para activar las respuestas basadas en contenido.
+              Sube documentos y activar las respuestas basadas en contenido.
             </div>
           )}
 
