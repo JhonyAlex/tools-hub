@@ -1,11 +1,11 @@
 // ============================================================
 // OCR Client — Extrae texto de imágenes via OpenRouter Vision API
 // ============================================================
-// Modelo principal: mistralai/mistral-small-3.2-24b-instruct
-// Fallback (si no soporta visión): mistralai/pixtral-12b-2409
+// Modelo principal: qwen/qwen3.5-flash-02-23
+// Fallback (si no funciona qwen): mistralai/mistral-small-3.2-24b-instruct
 
-const PRIMARY_MODEL = "mistralai/mistral-small-3.2-24b-instruct";
-const FALLBACK_MODEL = "mistralai/pixtral-12b-2409";
+const PRIMARY_MODEL = "qwen/qwen3.5-flash-02-23";
+const FALLBACK_MODEL = "mistralai/mistral-small-3.2-24b-instruct";
 
 const SYSTEM_PROMPT =
   "Extrae todo el texto visible en esta imagen con precisión. " +
