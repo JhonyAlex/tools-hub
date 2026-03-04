@@ -5,7 +5,6 @@
 
 import pdfParse from "pdf-parse";
 import { ocrFromImage } from "@/core/lib/ocrClient";
-import { pdfPagesToPng } from "@/core/lib/pdfToImages";
 
 const PLAIN_TEXT_MIMES = new Set([
     "text/plain",
@@ -123,6 +122,8 @@ async function extractPdfHybrid(buffer: Buffer): Promise<string> {
 
     let ocrText = "";
     try {
+        // Dynamic import para evitar problemas en build time
+        const { pdfPagesToPng } = await import("@/core/lib/pdfToImages");
         const pageImages = await pdfPagesToPng(buffer);
         const ocrResults = await Promise.all(
             pageImages.map((png) => ocrFromImage(png, "image/png"))
