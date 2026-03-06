@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
         name: body.name.trim(),
         description: body.description?.trim() || null,
       },
+      include: {
+        _count: { select: { documents: true } },
+      },
     });
     return NextResponse.json({ space }, { status: 201 });
   } catch (err) {

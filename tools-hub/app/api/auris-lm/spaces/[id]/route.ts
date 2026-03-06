@@ -21,6 +21,9 @@ export async function PATCH(
         name: body.name.trim(),
         description: body.description?.trim() ?? null,
       },
+      include: {
+        _count: { select: { documents: true } },
+      },
     });
     return NextResponse.json({ space });
   } catch (err) {
