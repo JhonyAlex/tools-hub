@@ -17,6 +17,7 @@ import { Users, BarChart3, Brain } from "lucide-react";
 import { useTheme } from "@/core/providers/ThemeProvider";
 import type { WorkerSummary, AIReportContent } from "../types";
 import { formatHours } from "../lib/timeParser";
+import { CopyableChart } from "./CopyableChart";
 
 interface WorkerAnalysisProps {
   workers: WorkerSummary[];
@@ -82,87 +83,89 @@ export function WorkerAnalysis({ workers, aiContent }: WorkerAnalysisProps) {
 
       {/* Chart - horizontal layout */}
       {mounted && (
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-green-500" />
-              <p className="text-sm font-medium">Carga de trabajo por trabajador</p>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={Math.max(300, workers.length * 55)}>
-              <BarChart
-                data={workers.map((w) => ({
-                  name: w.worker,
-                  hours: Math.round(w.totalHours * 100) / 100,
-                  ots: w.otCount,
-                }))}
-                layout="vertical"
-                margin={{ top: 5, right: 50, left: 10, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
-                <XAxis
-                  type="number"
-                  tick={{ fill: colors.text, fontSize: 11 }}
-                  axisLine={{ stroke: colors.grid }}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  tick={{ fill: colors.text, fontSize: 11 }}
-                  width={140}
-                  axisLine={{ stroke: colors.grid }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#1f2937" : "#fff",
-                    border: `1px solid ${colors.grid}`,
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  formatter={(value: any, name: any) => [
-                    name === "hours" ? formatHours(Number(value)) : value,
-                    name === "hours" ? "Horas" : "OTs",
-                  ]}
-                />
-                <Legend
-                  wrapperStyle={{ fontSize: 12 }}
-                  iconType="circle"
-                  iconSize={8}
-                />
-                <Bar
-                  dataKey="hours"
-                  name="Horas"
-                  fill={colors.hours}
-                  radius={[0, 6, 6, 0]}
-                  maxBarSize={40}
+        <CopyableChart>
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-green-500" />
+                <p className="text-sm font-medium">Carga de trabajo por trabajador</p>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={Math.max(300, workers.length * 55)}>
+                <BarChart
+                  data={workers.map((w) => ({
+                    name: w.worker,
+                    hours: Math.round(w.totalHours * 100) / 100,
+                    ots: w.otCount,
+                  }))}
+                  layout="vertical"
+                  margin={{ top: 5, right: 50, left: 10, bottom: 5 }}
                 >
-                  <LabelList
-                    dataKey="hours"
-                    position="right"
+                  <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fill: colors.text, fontSize: 11 }}
+                    axisLine={{ stroke: colors.grid }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fill: colors.text, fontSize: 11 }}
+                    width={140}
+                    axisLine={{ stroke: colors.grid }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? "#1f2937" : "#fff",
+                      border: `1px solid ${colors.grid}`,
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    formatter={(v: any) => formatHours(Number(v))}
-                    style={{ fill: colors.text, fontSize: 10 }}
+                    formatter={(value: any, name: any) => [
+                      name === "hours" ? formatHours(Number(value)) : value,
+                      name === "hours" ? "Horas" : "OTs",
+                    ]}
                   />
-                </Bar>
-                <Bar
-                  dataKey="ots"
-                  name="OTs"
-                  fill={colors.ots}
-                  radius={[0, 6, 6, 0]}
-                  maxBarSize={40}
-                >
-                  <LabelList
+                  <Legend
+                    wrapperStyle={{ fontSize: 12 }}
+                    iconType="circle"
+                    iconSize={8}
+                  />
+                  <Bar
+                    dataKey="hours"
+                    name="Horas"
+                    fill={colors.hours}
+                    radius={[0, 6, 6, 0]}
+                    maxBarSize={40}
+                  >
+                    <LabelList
+                      dataKey="hours"
+                      position="right"
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(v: any) => formatHours(Number(v))}
+                      style={{ fill: colors.text, fontSize: 10 }}
+                    />
+                  </Bar>
+                  <Bar
                     dataKey="ots"
-                    position="right"
-                    style={{ fill: colors.text, fontSize: 10 }}
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+                    name="OTs"
+                    fill={colors.ots}
+                    radius={[0, 6, 6, 0]}
+                    maxBarSize={40}
+                  >
+                    <LabelList
+                      dataKey="ots"
+                      position="right"
+                      style={{ fill: colors.text, fontSize: 10 }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </CopyableChart>
       )}
 
       {/* AI Analysis */}

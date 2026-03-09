@@ -16,6 +16,7 @@ import { Cpu, BarChart3, Brain } from "lucide-react";
 import { useTheme } from "@/core/providers/ThemeProvider";
 import type { AssetSummary, AIReportContent } from "../types";
 import { formatHours } from "../lib/timeParser";
+import { CopyableChart } from "./CopyableChart";
 
 interface AssetAnalysisProps {
   assets: AssetSummary[];
@@ -87,119 +88,123 @@ export function AssetAnalysis({ assets, aiContent }: AssetAnalysisProps) {
 
       {/* Chart: hours by asset (horizontal bars) */}
       {mounted && top10ByHours.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              <p className="text-sm font-medium">Horas por activo</p>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={Math.max(250, top10ByHours.length * 45)}>
-              <BarChart
-                data={top10ByHours.map((a) => ({
-                  name: a.activo.length > 25 ? a.activo.slice(0, 25) + "..." : a.activo,
-                  fullName: a.activo,
-                  hours: Math.round(a.totalHours * 100) / 100,
-                }))}
-                layout="vertical"
-                margin={{ top: 5, right: 50, left: 10, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
-                <XAxis
-                  type="number"
-                  tick={{ fill: colors.text, fontSize: 11 }}
-                  axisLine={{ stroke: colors.grid }}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  tick={{ fill: colors.text, fontSize: 11 }}
-                  width={180}
-                  axisLine={{ stroke: colors.grid }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#1f2937" : "#fff",
-                    border: `1px solid ${colors.grid}`,
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  formatter={(value: any) => [`${formatHours(Number(value))}`, "Horas"]}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  labelFormatter={(label: any, payload: any) => payload?.[0]?.payload?.fullName ?? label}
-                />
-                <Bar dataKey="hours" fill={colors.bar} radius={[0, 6, 6, 0]} maxBarSize={40}>
-                  <LabelList
-                    dataKey="hours"
-                    position="right"
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    formatter={(v: any) => formatHours(Number(v))}
-                    style={{ fill: colors.text, fontSize: 10 }}
+        <CopyableChart>
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                <p className="text-sm font-medium">Horas por activo</p>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={Math.max(250, top10ByHours.length * 45)}>
+                <BarChart
+                  data={top10ByHours.map((a) => ({
+                    name: a.activo.length > 25 ? a.activo.slice(0, 25) + "..." : a.activo,
+                    fullName: a.activo,
+                    hours: Math.round(a.totalHours * 100) / 100,
+                  }))}
+                  layout="vertical"
+                  margin={{ top: 5, right: 50, left: 10, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fill: colors.text, fontSize: 11 }}
+                    axisLine={{ stroke: colors.grid }}
                   />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fill: colors.text, fontSize: 11 }}
+                    width={180}
+                    axisLine={{ stroke: colors.grid }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? "#1f2937" : "#fff",
+                      border: `1px solid ${colors.grid}`,
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any) => [`${formatHours(Number(value))}`, "Horas"]}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    labelFormatter={(label: any, payload: any) => payload?.[0]?.payload?.fullName ?? label}
+                  />
+                  <Bar dataKey="hours" fill={colors.bar} radius={[0, 6, 6, 0]} maxBarSize={40}>
+                    <LabelList
+                      dataKey="hours"
+                      position="right"
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(v: any) => formatHours(Number(v))}
+                      style={{ fill: colors.text, fontSize: 10 }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </CopyableChart>
       )}
 
       {/* Chart: OTs by asset (horizontal bars) */}
       {mounted && top10ByOT.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-purple-500" />
-              <p className="text-sm font-medium">Número de OTs por activo</p>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={Math.max(250, top10ByOT.length * 45)}>
-              <BarChart
-                data={top10ByOT.map((a) => ({
-                  name: a.activo.length > 25 ? a.activo.slice(0, 25) + "..." : a.activo,
-                  fullName: a.activo,
-                  ots: a.otCount,
-                }))}
-                layout="vertical"
-                margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
-                <XAxis
-                  type="number"
-                  tick={{ fill: colors.text, fontSize: 11 }}
-                  axisLine={{ stroke: colors.grid }}
-                  allowDecimals={false}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  tick={{ fill: colors.text, fontSize: 11 }}
-                  width={180}
-                  axisLine={{ stroke: colors.grid }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#1f2937" : "#fff",
-                    border: `1px solid ${colors.grid}`,
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  labelFormatter={(label: any, payload: any) => payload?.[0]?.payload?.fullName ?? label}
-                />
-                <Bar dataKey="ots" name="OTs" fill={colors.barAlt} radius={[0, 6, 6, 0]} maxBarSize={40}>
-                  <LabelList
-                    dataKey="ots"
-                    position="right"
-                    style={{ fill: colors.text, fontSize: 10 }}
+        <CopyableChart>
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-purple-500" />
+                <p className="text-sm font-medium">Número de OTs por activo</p>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={Math.max(250, top10ByOT.length * 45)}>
+                <BarChart
+                  data={top10ByOT.map((a) => ({
+                    name: a.activo.length > 25 ? a.activo.slice(0, 25) + "..." : a.activo,
+                    fullName: a.activo,
+                    ots: a.otCount,
+                  }))}
+                  layout="vertical"
+                  margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fill: colors.text, fontSize: 11 }}
+                    axisLine={{ stroke: colors.grid }}
+                    allowDecimals={false}
                   />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fill: colors.text, fontSize: 11 }}
+                    width={180}
+                    axisLine={{ stroke: colors.grid }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isDark ? "#1f2937" : "#fff",
+                      border: `1px solid ${colors.grid}`,
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    labelFormatter={(label: any, payload: any) => payload?.[0]?.payload?.fullName ?? label}
+                  />
+                  <Bar dataKey="ots" name="OTs" fill={colors.barAlt} radius={[0, 6, 6, 0]} maxBarSize={40}>
+                    <LabelList
+                      dataKey="ots"
+                      position="right"
+                      style={{ fill: colors.text, fontSize: 10 }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </CopyableChart>
       )}
 
       {/* AI Analysis */}

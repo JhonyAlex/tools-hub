@@ -20,6 +20,7 @@ import { Settings, PieChart as PieIcon, BarChart3, Brain } from "lucide-react";
 import { useTheme } from "@/core/providers/ThemeProvider";
 import type { OTTypeSummary, AIReportContent } from "../types";
 import { formatHours } from "../lib/timeParser";
+import { CopyableChart } from "./CopyableChart";
 
 interface OTTypeAnalysisProps {
   otTypes: OTTypeSummary[];
@@ -93,36 +94,95 @@ export function OTTypeAnalysis({ otTypes, aiContent }: OTTypeAnalysisProps) {
       {mounted && otTypes.length > 0 && (
         <div className="space-y-4">
           {/* Pie chart - full width for label space */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <PieIcon className="h-4 w-4 text-primary" />
-                <p className="text-sm font-medium">Distribución por tipo de OT</p>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div style={{ overflow: "visible" }}>
-                <ResponsiveContainer width="100%" height={350}>
-                  <PieChart>
-                    <Pie
-                      data={otTypes.map((t) => ({
-                        name: t.tipoDeOT,
-                        value: t.otCount,
-                      }))}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      innerRadius={40}
-                      dataKey="value"
-                      label={({ percent }) =>
-                        `${((percent ?? 0) * 100).toFixed(0)}%`
-                      }
-                      labelLine={true}
-                    >
-                      {otTypes.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
+          <CopyableChart>
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <PieIcon className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium">Distribución por tipo de OT</p>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div style={{ overflow: "visible" }}>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <PieChart>
+                      <Pie
+                        data={otTypes.map((t) => ({
+                          name: t.tipoDeOT,
+                          value: t.otCount,
+                        }))}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        innerRadius={40}
+                        dataKey="value"
+                        label={({ percent }) =>
+                          `${((percent ?? 0) * 100).toFixed(0)}%`
+                        }
+                        labelLine={true}
+                      >
+                        {otTypes.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: isDark ? "#1f2937" : "#fff",
+                          border: `1px solid ${colors.grid}`,
+                          borderRadius: 8,
+                          fontSize: 12,
+                        }}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        formatter={(value: any, name: any) => [`${value} OTs`, name]}
+                      />
+                      <Legend
+                        wrapperStyle={{ fontSize: 11 }}
+                        iconType="circle"
+                        iconSize={8}
+                        layout="vertical"
+                        align="right"
+                        verticalAlign="middle"
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </CopyableChart>
+
+          {/* Bar chart: avg time - horizontal layout for readability */}
+          <CopyableChart>
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-amber-500" />
+                  <p className="text-sm font-medium">Tiempo promedio por tipo de OT</p>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={Math.max(250, otTypes.length * 45)}>
+                  <BarChart
+                    data={otTypes.map((t) => ({
+                      name: t.tipoDeOT.length > 22 ? t.tipoDeOT.slice(0, 22) + "..." : t.tipoDeOT,
+                      fullName: t.tipoDeOT,
+                      avg: Math.round(t.avgHours * 100) / 100,
+                    }))}
+                    layout="vertical"
+                    margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
+                    <XAxis
+                      type="number"
+                      tick={{ fill: colors.text, fontSize: 11 }}
+                      axisLine={{ stroke: colors.grid }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tick={{ fill: colors.text, fontSize: 11 }}
+                      width={180}
+                      axisLine={{ stroke: colors.grid }}
+                    />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: isDark ? "#1f2937" : "#fff",
@@ -131,79 +191,24 @@ export function OTTypeAnalysis({ otTypes, aiContent }: OTTypeAnalysisProps) {
                         fontSize: 12,
                       }}
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      formatter={(value: any, name: any) => [`${value} OTs`, name]}
-                    />
-                    <Legend
-                      wrapperStyle={{ fontSize: 11 }}
-                      iconType="circle"
-                      iconSize={8}
-                      layout="vertical"
-                      align="right"
-                      verticalAlign="middle"
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Bar chart: avg time - horizontal layout for readability */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-amber-500" />
-                <p className="text-sm font-medium">Tiempo promedio por tipo de OT</p>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={Math.max(250, otTypes.length * 45)}>
-                <BarChart
-                  data={otTypes.map((t) => ({
-                    name: t.tipoDeOT.length > 22 ? t.tipoDeOT.slice(0, 22) + "..." : t.tipoDeOT,
-                    fullName: t.tipoDeOT,
-                    avg: Math.round(t.avgHours * 100) / 100,
-                  }))}
-                  layout="vertical"
-                  margin={{ top: 5, right: 40, left: 10, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} horizontal={false} />
-                  <XAxis
-                    type="number"
-                    tick={{ fill: colors.text, fontSize: 11 }}
-                    axisLine={{ stroke: colors.grid }}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    tick={{ fill: colors.text, fontSize: 11 }}
-                    width={180}
-                    axisLine={{ stroke: colors.grid }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: isDark ? "#1f2937" : "#fff",
-                      border: `1px solid ${colors.grid}`,
-                      borderRadius: 8,
-                      fontSize: 12,
-                    }}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    formatter={(value: any) => [`${formatHours(Number(value))}`, "Tiempo medio"]}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    labelFormatter={(label: any, payload: any) => payload?.[0]?.payload?.fullName ?? label}
-                  />
-                  <Bar dataKey="avg" name="Horas promedio" fill={colors.bar} radius={[0, 6, 6, 0]} maxBarSize={40}>
-                    <LabelList
-                      dataKey="avg"
-                      position="right"
+                      formatter={(value: any) => [`${formatHours(Number(value))}`, "Tiempo medio"]}
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      formatter={(v: any) => formatHours(Number(v))}
-                      style={{ fill: colors.text, fontSize: 10 }}
+                      labelFormatter={(label: any, payload: any) => payload?.[0]?.payload?.fullName ?? label}
                     />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+                    <Bar dataKey="avg" name="Horas promedio" fill={colors.bar} radius={[0, 6, 6, 0]} maxBarSize={40}>
+                      <LabelList
+                        dataKey="avg"
+                        position="right"
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        formatter={(v: any) => formatHours(Number(v))}
+                        style={{ fill: colors.text, fontSize: 10 }}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </CopyableChart>
         </div>
       )}
 

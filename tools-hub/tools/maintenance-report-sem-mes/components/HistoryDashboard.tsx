@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Eye, Calendar, Clock, Hash } from "lucide-react";
+import { Trash2, Eye, Calendar, Clock, Hash, Brain } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +112,12 @@ export function HistoryDashboard({ reports, onDelete, onLoad }: HistoryDashboard
                         <span className="text-xs">
                           {new Date(report.createdAt).toLocaleDateString("es-ES")}
                         </span>
+                        {report.metrics.aiContent && (
+                          <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400 font-medium">
+                            <Brain className="h-3 w-3" />
+                            IA
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
