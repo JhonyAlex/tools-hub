@@ -1,5 +1,6 @@
 "use client";
 
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Wrench, Sparkles, Github, Menu, ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggleSimple } from "./ThemeToggle";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/core/types/tool.types";
 import { getCategoryStyle } from "@/core/styles/category-styles";
 import { useState } from "react";
+import { userButtonAppearance } from "@/core/lib/clerk-appearance";
 
 export function Header() {
   const { toolInfo } = useToolInfo();
@@ -140,6 +142,31 @@ export function Header() {
 
           {/* Theme toggle */}
           <ThemeToggleSimple />
+
+          <SignedIn>
+            <div className="flex items-center">
+              <UserButton
+                appearance={userButtonAppearance}
+                afterSwitchSessionUrl="/"
+                userProfileMode="modal"
+              />
+            </div>
+          </SignedIn>
+
+          <SignedOut>
+            <div className="hidden sm:flex items-center gap-2">
+              <SignInButton mode="modal">
+                <Button variant="outline" size="sm" className="h-9 rounded-lg">
+                  Iniciar sesion
+                </Button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <Button size="sm" className="h-9 rounded-lg">
+                  Registrarse
+                </Button>
+              </SignUpButton>
+            </div>
+          </SignedOut>
         </div>
       </div>
     </header>
