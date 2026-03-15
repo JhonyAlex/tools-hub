@@ -402,8 +402,6 @@ async function transcribeWithDeepgram(
       smart_format: "true",
       paragraphs: "true",
       punctuate: "true",
-      diarize: "true",
-      utterances: "true",
     }).toString();
 
   const res = await fetch(url, {
@@ -423,12 +421,16 @@ async function transcribeWithDeepgram(
   const data = await res.json() as {
     results?: {
       channels?: Array<{
-        alternatives?: Array<{ transcript?: string }>;
+        alternatives?: Array<{
+          transcript?: string;
+          paragraphs?: { transcript?: string };
+        }>;
       }>;
     };
   };
 
-  return (
-    data.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? ""
-  );
+  const alt = data.results?.channels?.[0]?.alternatives?.[0];
+  // paragraphs.transcript includes proper line breaks when paragraphs=true;
+  // fall back to the flat transcript otherwise.
+  return alt?.paragraphs?.transcript ?? alt?.transcript ?? "";
 }
