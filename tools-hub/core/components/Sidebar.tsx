@@ -191,6 +191,21 @@ function SidebarHeader({ collapsed, toggle }: SidebarHeaderProps) {
   );
 }
 
+function CollapsedSidebarRailHeader({ toggle }: { toggle: () => void }) {
+  return (
+    <div className="shrink-0 border-b border-border/50 bg-muted/30 p-2">
+      <button
+        onClick={toggle}
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+        title="Expandir menú (⌘B)"
+        aria-label="Expandir menú"
+      >
+        <PanelLeftOpen className="h-4.5 w-4.5" />
+      </button>
+    </div>
+  );
+}
+
 export function Sidebar({ categories, className }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -208,7 +223,7 @@ export function Sidebar({ categories, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 border-r bg-muted/30 md:flex flex-col transition-all duration-300 ease-in-out h-full",
+        "relative hidden shrink-0 border-r bg-muted/30 md:flex flex-col transition-all duration-300 ease-in-out h-full",
         collapsed ? "w-16" : "w-64",
         className
       )}
@@ -245,6 +260,8 @@ export function Sidebar({ categories, className }: SidebarProps) {
       {!collapsed && (
         <SidebarHeader collapsed={collapsed} toggle={toggle} />
       )}
+
+      {collapsed && <CollapsedSidebarRailHeader toggle={toggle} />}
 
       {/* Main nav content - scrollable */}
       <nav className="flex-1 overflow-y-auto p-2">

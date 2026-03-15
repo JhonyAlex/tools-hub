@@ -21,6 +21,7 @@ export function SpaceView({ space }: SpaceViewProps) {
     uploadDocument,
     deleteDocument,
     renameDocument,
+    suggestDocumentName,
     downloadDocument,
   } = useDocuments(space.id);
 
@@ -103,6 +104,7 @@ export function SpaceView({ space }: SpaceViewProps) {
               onUpload={handleUpload}
               onDelete={(id) => void deleteDocument(id)}
               onRename={(id, name) => renameDocument(id, name)}
+              onSuggestName={(id) => suggestDocumentName(id)}
               onDownload={downloadDocument}
             />
           </div>

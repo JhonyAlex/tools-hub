@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { FileText, FileAudio, Trash2, Download, Loader2, AlertCircle, CheckCircle2, ClipboardPaste, Upload, Eye, Pencil, Check, X } from "lucide-react";
+import { FileText, FileAudio, Trash2, Download, Loader2, AlertCircle, CheckCircle2, ClipboardPaste, Upload, Eye, Pencil, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ interface DocumentListProps {
   onUpload: (files: File[]) => Promise<boolean>;
   onDelete: (id: string) => void;
   onRename: (id: string, name: string) => Promise<boolean>;
+  onSuggestName: (id: string) => Promise<boolean>;
   onDownload: (id: string, name: string) => void;
 }
 
@@ -81,6 +82,7 @@ export function DocumentList({
   onUpload,
   onDelete,
   onRename,
+  onSuggestName,
   onDownload,
 }: DocumentListProps) {
   // ── Tabs: "file" or "text"
@@ -96,6 +98,8 @@ export function DocumentList({
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
   const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
+  const [suggestingDocId, setSuggestingDocId] = useState<string | null>(null);
+  const editingDoc = documents.find((doc) => doc.id === editingDocId) ?? null;
 
   const startRename = (doc: AurisDocument) => {
     setEditingDocId(doc.id);
@@ -126,6 +130,17 @@ export function DocumentList({
     }
 
     setUploadError("No se pudo renombrar la fuente.");
+  };
+
+  const handleSuggestName = async (doc: AurisDocument) => {
+    setUploadError(null);
+    setSuggestingDocId(doc.id);
+    const ok = await onSuggestName(doc.id);
+    setSuggestingDocId(null);
+
+    if (!ok) {
+      setUploadError("No se pudo generar un nombre según el contenido.");
+    }
   };
 
   const handleAddText = async () => {
@@ -295,44 +310,7 @@ export function DocumentList({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    {editingDocId === doc.id ? (
-                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        <Input
-                          value={draftName}
-                          onChange={(e) => setDraftName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              void submitRename(doc);
-                            }
-                            if (e.key === "Escape") {
-                              e.preventDefault();
-                              cancelRename();
-                            }
-                          }}
-                          className="h-8 rounded-lg text-sm"
-                          maxLength={160}
-                          autoFocus
-                        />
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          className="h-8 w-8 rounded-md"
-                          disabled={renamingDocId === doc.id}
-                          onClick={() => void submitRename(doc)}
-                        >
-                          {renamingDocId === doc.id ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
-                        </Button>
-                        <Button
-                          size="icon-sm"
-                          variant="ghost"
-                          className="h-8 w-8 rounded-md"
-                          onClick={cancelRename}
-                        >
-                          <X className="size-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
+                    {
                       <button
                         type="button"
                         className={cn(
@@ -347,7 +325,7 @@ export function DocumentList({
                       >
                         {doc.originalName}
                       </button>
-                    )}
+                    }
 
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       <span className="text-[10px] font-bold text-muted-foreground/60">
@@ -374,6 +352,24 @@ export function DocumentList({
                         <Eye className="size-3.5" />
                       </Button>
                     )}
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      className="h-8 w-8 rounded-md"
+                      onClick={() => void handleSuggestName(doc)}
+                      title="Nombrar según contenido"
+                      disabled={
+                        suggestingDocId === doc.id ||
+                        doc.status === "queued" ||
+                        doc.status === "processing"
+                      }
+                    >
+                      {suggestingDocId === doc.id ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="size-3.5" />
+                      )}
+                    </Button>
                     <Button
                       size="icon-sm"
                       variant="ghost"
@@ -415,6 +411,80 @@ export function DocumentList({
         spaceId={spaceId}
         onClose={() => setPreviewDoc(null)}
       />
+
+      {editingDoc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={cancelRename}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border bg-card shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Renombrar fuente</p>
+                <p className="mt-0.5 text-xs text-muted-foreground truncate">
+                  {editingDoc.originalName}
+                </p>
+              </div>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                className="h-8 w-8 rounded-md"
+                onClick={cancelRename}
+                title="Cerrar"
+              >
+                <X className="size-3.5" />
+              </Button>
+            </div>
+
+            <div className="space-y-3 px-4 py-4">
+              <Input
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void submitRename(editingDoc);
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    cancelRename();
+                  }
+                }}
+                className="h-10 rounded-xl text-sm"
+                maxLength={160}
+                autoFocus
+                placeholder="Nuevo nombre de la fuente"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Este cambio se guardará en la nube para este espacio.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
+              <Button variant="outline" onClick={cancelRename} className="rounded-lg">
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => void submitRename(editingDoc)}
+                className="rounded-lg"
+                disabled={renamingDocId === editingDoc.id || !draftName.trim()}
+              >
+                {renamingDocId === editingDoc.id ? (
+                  <>
+                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                    Guardando
+                  </>
+                ) : (
+                  "Guardar nombre"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

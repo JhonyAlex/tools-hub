@@ -179,6 +179,37 @@ export function useDocuments(spaceId: string | null) {
     [spaceId]
   );
 
+  const suggestDocumentName = useCallback(
+    async (docId: string): Promise<boolean> => {
+      if (!spaceId) return false;
+
+      try {
+        const res = await fetch(
+          `/api/auris-lm/spaces/${spaceId}/documents/${docId}/suggest-name`,
+          {
+            method: "POST",
+            headers: getAurisHeaders(),
+            cache: "no-store",
+          }
+        );
+
+        if (!res.ok) return false;
+
+        const data = (await res.json()) as { document?: AurisDocument };
+        const updated = data.document;
+        if (!updated) return false;
+
+        setDocuments((prev) =>
+          prev.map((doc) => (doc.id === docId ? { ...doc, originalName: updated.originalName } : doc))
+        );
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [spaceId]
+  );
+
   const downloadDocument = useCallback(
     (docId: string, originalName: string) => {
       if (!spaceId) return;
@@ -202,6 +233,7 @@ export function useDocuments(spaceId: string | null) {
     uploadDocument,
     deleteDocument,
     renameDocument,
+    suggestDocumentName,
     downloadDocument,
   };
 }
