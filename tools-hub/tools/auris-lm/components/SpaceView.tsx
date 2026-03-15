@@ -6,6 +6,7 @@ import { useChat } from "../lib/useChat";
 import { DocumentList } from "./DocumentList";
 import { ChatPanel } from "./ChatPanel";
 import type { AurisSpace } from "../lib/useSpaces";
+import type { UploadResult } from "../lib/useDocuments";
 import { cn } from "@/lib/utils";
 
 interface SpaceViewProps {
@@ -35,13 +36,15 @@ export function SpaceView({ space }: SpaceViewProps) {
     clearHistory,
   } = useChat(space.id);
 
-  const handleUpload = async (files: File[]): Promise<boolean> => {
-    let allOk = true;
+  const handleUpload = async (files: File[]): Promise<UploadResult> => {
+    let lastError: UploadResult | null = null;
     for (const file of files) {
-      const ok = await uploadDocument(file);
-      if (!ok) allOk = false;
+      const result = await uploadDocument(file);
+      if (!result.ok) {
+        lastError = result;
+      }
     }
-    return allOk;
+    return lastError ?? { ok: true };
   };
 
   const readyDocs = documents.filter((d) => d.status === "ready");
