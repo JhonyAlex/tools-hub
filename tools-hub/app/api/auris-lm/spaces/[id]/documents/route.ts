@@ -66,6 +66,7 @@ export async function GET(
       storedPath: string;
       mimeType: string;
       fileSize: number;
+      checksum: string | null;
       status: string;
       errorMessage: string | null;
       createdAt: Date;
@@ -77,6 +78,7 @@ export async function GET(
         "storedPath",
         "mimeType",
         "fileSize",
+        checksum,
         status,
         "errorMessage",
         "createdAt"
@@ -148,6 +150,20 @@ export async function POST(
       userId: string;
       checksum: string | null;
     }>;
+    const duplicateDocuments = [] as Array<{
+      id: string;
+      spaceId: string;
+      originalName: string;
+      storedPath: string;
+      mimeType: string;
+      fileSize: number;
+      extractedText: string;
+      status: string;
+      errorMessage: string | null;
+      createdAt: Date;
+      userId: string;
+      checksum: string | null;
+    }>;
 
     for (const file of files) {
       const mimeType = file.type || "application/octet-stream";
@@ -198,7 +214,7 @@ export async function POST(
         LIMIT 1
       `);
       if (duplicate.length > 0) {
-        createdDocuments.push(duplicate[0]);
+        duplicateDocuments.push(duplicate[0]);
         continue;
       }
 
@@ -209,32 +225,67 @@ export async function POST(
       const fullPath = path.join(UPLOADS_BASE, storedPath);
       await writeFile(fullPath, buffer);
 
-      await db.$executeRaw(Prisma.sql`
-        INSERT INTO "AurisLMDocument" (
-          id,
-          "userId",
-          "spaceId",
-          checksum,
-          "originalName",
-          "storedPath",
-          "mimeType",
-          "fileSize",
-          "extractedText",
-          status
-        )
-        VALUES (
-          ${docId},
-          ${userId},
-          ${spaceId},
-          ${checksum},
-          ${file.name},
-          ${storedPath},
-          ${mimeType},
-          ${buffer.length},
-          ${""},
-          ${"queued"}
-        )
-      `);
+      try {
+        await db.aurisLMDocument.create({
+          data: {
+            id: docId,
+            userId,
+            spaceId,
+            checksum,
+            originalName: file.name,
+            storedPath,
+            mimeType,
+            fileSize: buffer.length,
+            extractedText: "",
+            status: "queued",
+          },
+        });
+      } catch (error) {
+        // If a concurrent request inserted the same hash first, treat it as duplicate.
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          const existing = await db.$queryRaw<Array<{
+            id: string;
+            userId: string;
+            spaceId: string;
+            originalName: string;
+            storedPath: string;
+            mimeType: string;
+            fileSize: number;
+            checksum: string | null;
+            extractedText: string;
+            status: string;
+            errorMessage: string | null;
+            createdAt: Date;
+          }>>(Prisma.sql`
+            SELECT
+              id,
+              "userId",
+              "spaceId",
+              "originalName",
+              "storedPath",
+              "mimeType",
+              "fileSize",
+              checksum,
+              "extractedText",
+              status,
+              "errorMessage",
+              "createdAt"
+            FROM "AurisLMDocument"
+            WHERE "userId" = ${userId}
+              AND "spaceId" = ${spaceId}
+              AND checksum = ${checksum}
+            ORDER BY "createdAt" DESC
+            LIMIT 1
+          `);
+
+          if (existing.length > 0) {
+            duplicateDocuments.push(existing[0]);
+            continue;
+          }
+        }
+
+        throw error;
+      }
 
       createdDocuments.push({
         id: docId,
@@ -264,6 +315,18 @@ export async function POST(
           isImage,
         });
       });
+    }
+
+    if (createdDocuments.length === 0 && duplicateDocuments.length > 0) {
+      return NextResponse.json(
+        {
+          code: "DUPLICATE_DOCUMENT",
+          error: "La fuente ya existe en este espacio",
+          duplicate: duplicateDocuments[0],
+          duplicates: duplicateDocuments,
+        },
+        { status: 409 }
+      );
     }
 
     if (createdDocuments.length === 0) {

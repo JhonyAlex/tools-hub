@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { FileText, FileAudio, Trash2, Download, Loader2, AlertCircle, CheckCircle2, ClipboardPaste, Upload, Eye, Pencil, Sparkles, X } from "lucide-react";
+import { FileText, FileAudio, Trash2, Download, Loader2, AlertCircle, CheckCircle2, ClipboardPaste, Upload, Eye, Pencil, Sparkles, X, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -100,6 +100,44 @@ export function DocumentList({
   const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
   const [suggestingDocId, setSuggestingDocId] = useState<string | null>(null);
   const editingDoc = documents.find((doc) => doc.id === editingDocId) ?? null;
+  // ── Duplicate detection
+  const [duplicateWarnings, setDuplicateWarnings] = useState<
+    { file: File; match: AurisDocument }[]
+  >([]);
+
+  const handleFilesWithDuplicateCheck = async (files: File[]) => {
+    setUploadError(null);
+    const warnings: { file: File; match: AurisDocument }[] = [];
+    const clean: File[] = [];
+
+    for (const file of files) {
+      const match = documents.find((d) => d.fileSize === file.size);
+      if (match) {
+        warnings.push({ file, match });
+      } else {
+        clean.push(file);
+      }
+    }
+
+    if (clean.length > 0) {
+      const ok = await onUpload(clean);
+      if (!ok) setUploadError("Error al subir el archivo.");
+    }
+
+    if (warnings.length > 0) {
+      setDuplicateWarnings((prev) => [...prev, ...warnings]);
+    }
+  };
+
+  const confirmDuplicate = async (entry: { file: File; match: AurisDocument }) => {
+    setDuplicateWarnings((prev) => prev.filter((w) => w.file !== entry.file));
+    const ok = await onUpload([entry.file]);
+    if (!ok) setUploadError("Error al subir el archivo.");
+  };
+
+  const dismissDuplicate = (file: File) => {
+    setDuplicateWarnings((prev) => prev.filter((w) => w.file !== file));
+  };
 
   const startRename = (doc: AurisDocument) => {
     setEditingDocId(doc.id);
@@ -196,14 +234,51 @@ export function DocumentList({
       {tab === "file" && (
         <div className="animate-in fade-in duration-300">
           <UploadDropzone
-            onFiles={async (files) => {
-              setUploadError(null);
-              const ok = await onUpload(files);
-              if (!ok) setUploadError("Error al subir el archivo.");
-            }}
+            onFiles={handleFilesWithDuplicateCheck}
             uploading={uploading}
             uploadProgress={uploadProgress}
           />
+          {/* Duplicate file warnings */}
+          {duplicateWarnings.length > 0 && (
+            <div className="mt-2 space-y-2">
+              {duplicateWarnings.map(({ file, match }) => (
+                <div
+                  key={file.name + file.size}
+                  className="rounded-xl border border-amber-500/40 bg-amber-500/5 px-3 py-2.5 text-xs"
+                >
+                  <div className="flex items-start gap-2">
+                    <TriangleAlert className="size-3.5 mt-0.5 shrink-0 text-amber-600" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-amber-700 leading-snug">
+                        Posible duplicado detectado
+                      </p>
+                      <p className="mt-0.5 text-muted-foreground leading-snug">
+                        <span className="font-medium text-foreground truncate">&ldquo;{file.name}&rdquo;</span>{" "}
+                        tiene el mismo tamaño que{" "}
+                        <span className="font-medium text-foreground truncate">&ldquo;{match.originalName}&rdquo;</span>{" "}
+                        ya cargada ({formatBytes(file.size)}).
+                      </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          onClick={() => void confirmDuplicate({ file, match })}
+                          disabled={uploading}
+                          className="rounded-lg bg-amber-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
+                        >
+                          Añadir de todas formas
+                        </button>
+                        <button
+                          onClick={() => dismissDuplicate(file)}
+                          className="rounded-lg border border-border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                        >
+                          Omitir
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {uploadError && (
             <p className="mt-2 text-[11px] font-medium text-destructive flex items-center gap-1">
               <AlertCircle className="size-3" /> {uploadError}

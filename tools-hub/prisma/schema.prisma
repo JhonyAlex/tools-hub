@@ -86,6 +86,7 @@ model AurisLMDocument {
   @@index([userId, spaceId])
   @@index([spaceId])
   @@index([status])
+  @@unique([userId, spaceId, checksum])
 }
 
 model AurisLMChunk {

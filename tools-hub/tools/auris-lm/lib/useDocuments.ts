@@ -12,9 +12,16 @@ export interface AurisDocument {
   storedPath: string;
   mimeType: string;
   fileSize: number;
+  checksum?: string | null;
   status: "queued" | "processing" | "ready" | "partial" | "error";
   errorMessage?: string | null;
   createdAt: string;
+}
+
+export interface UploadResult {
+  ok: boolean;
+  error?: string;
+  code?: string;
 }
 
 export function useDocuments(spaceId: string | null) {
@@ -73,8 +80,8 @@ export function useDocuments(spaceId: string | null) {
   }, [spaceId, fetchDocuments]);
 
   const uploadDocument = useCallback(
-    async (file: File): Promise<boolean> => {
-      if (!spaceId) return false;
+    async (file: File): Promise<UploadResult> => {
+      if (!spaceId) return { ok: false, error: "Espacio no seleccionado" };
       try {
         setUploading(true);
         setUploadProgress(0);
@@ -83,7 +90,7 @@ export function useDocuments(spaceId: string | null) {
         formData.append("file", file);
 
         // Use XMLHttpRequest for real progress tracking
-        return await new Promise<boolean>((resolve) => {
+        return await new Promise<UploadResult>((resolve) => {
           const xhr = new XMLHttpRequest();
           xhr.upload.addEventListener("progress", (e) => {
             if (e.lengthComputable) {
@@ -105,15 +112,44 @@ export function useDocuments(spaceId: string | null) {
               setTimeout(() => {
                 void fetchDocuments(true);
               }, 150);
-              resolve(true);
+              resolve({ ok: true });
             } else {
-              resolve(false);
+              let parsed: { error?: string; code?: string; duplicate?: { originalName?: string } } | null = null;
+              try {
+                parsed = JSON.parse(xhr.responseText) as {
+                  error?: string;
+                  code?: string;
+                  duplicate?: { originalName?: string };
+                };
+              } catch {
+                parsed = null;
+              }
+
+              if (xhr.status === 409 && parsed?.code === "DUPLICATE_DOCUMENT") {
+                const duplicateName = parsed.duplicate?.originalName;
+                resolve({
+                  ok: false,
+                  code: parsed.code,
+                  error: duplicateName
+                    ? `La fuente ya existe (duplicado por hash SHA-256): ${duplicateName}.`
+                    : "La fuente ya existe (duplicado por hash SHA-256).",
+                });
+                return;
+              }
+
+              resolve({
+                ok: false,
+                code: parsed?.code,
+                error: parsed?.error ?? "Error al subir el archivo.",
+              });
             }
           });
-          xhr.addEventListener("error", () => resolve(false));
+          xhr.addEventListener("error", () => resolve({ ok: false, error: "Error de red al subir el archivo." }));
           xhr.open("POST", `/api/auris-lm/spaces/${spaceId}/documents`);
           xhr.send(formData);
         });
+      } catch {
+        return { ok: false, error: "Error inesperado durante la subida." };
       } finally {
         setUploading(false);
         setUploadProgress(0);
