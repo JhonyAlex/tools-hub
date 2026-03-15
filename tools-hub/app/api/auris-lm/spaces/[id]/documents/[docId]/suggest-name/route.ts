@@ -23,6 +23,7 @@ const STOPWORDS = new Set([
 
 function normalizeSuggestedName(raw: string, fallback: string): string {
   const cleaned = raw
+    .replace(/<[^>]*>/g, " ")
     .replace(/[`"'_*#]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -56,6 +57,10 @@ function generateLocalSuggestion(extractedText: string, fallback: string): strin
 
   const candidate = top.join(" ").trim();
   return normalizeSuggestedName(candidate, fallback);
+}
+
+function isSameName(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
 export async function POST(
@@ -150,6 +155,17 @@ export async function POST(
 
     if (usedFallback) {
       suggestedName = generateLocalSuggestion(excerpt, document.originalName);
+    }
+
+    if (isSameName(suggestedName, document.originalName)) {
+      return NextResponse.json(
+        {
+          code: "NO_NAME_CHANGE",
+          error:
+            "No se pudo generar un nombre diferente. Intenta nuevamente cuando el contenido esté más completo.",
+        },
+        { status: 409 }
+      );
     }
 
     const updated = await db.aurisLMDocument.update({
