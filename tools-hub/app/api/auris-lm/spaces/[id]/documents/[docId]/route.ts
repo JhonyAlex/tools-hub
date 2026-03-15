@@ -3,16 +3,20 @@ import { db } from "@/core/lib/db";
 import { unlink } from "fs/promises";
 import path from "path";
 import { UPLOADS_BASE } from "@/core/lib/uploads";
+import { getRequestUserId, unauthorizedResponse } from "@/core/lib/requestUser";
 
 // GET /api/auris-lm/spaces/[id]/documents/[docId] – fetch doc with extracted text
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string; docId: string }> }
 ) {
   try {
+    const userId = getRequestUserId(req);
+    if (!userId) return unauthorizedResponse();
+
     const { id: spaceId, docId } = await params;
     const doc = await db.aurisLMDocument.findFirst({
-      where: { id: docId, spaceId },
+      where: { id: docId, spaceId, userId },
       select: {
         id: true,
         spaceId: true,
@@ -38,14 +42,17 @@ export async function GET(
 
 // DELETE /api/auris-lm/spaces/[id]/documents/[docId]
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string; docId: string }> }
 ) {
   try {
+    const userId = getRequestUserId(req);
+    if (!userId) return unauthorizedResponse();
+
     const { id: spaceId, docId } = await params;
 
     const doc = await db.aurisLMDocument.findFirst({
-      where: { id: docId, spaceId },
+      where: { id: docId, spaceId, userId },
     });
     if (!doc) {
       return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });

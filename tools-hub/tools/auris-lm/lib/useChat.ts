@@ -1,7 +1,9 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
+import { getAurisHeaders } from "@/tools/auris-lm/lib/clientIdentity";
 
 export interface ChatSource {
+  chunkId?: string;
   docName: string;
   snippet: string;
 }
@@ -12,6 +14,8 @@ export interface ChatMessage {
   content: string;
   webSearchUsed: boolean;
   sources?: ChatSource[];
+  grounded?: boolean;
+  missingInfo?: string | null;
   isStreaming?: boolean;
 }
 
@@ -55,7 +59,7 @@ export function useChat(spaceId: string | null) {
       try {
         const res = await fetch(`/api/auris-lm/spaces/${spaceId}/chat`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAurisHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             message: text.trim(),
             webSearch,
@@ -96,6 +100,9 @@ export function useChat(spaceId: string | null) {
                 type: string;
                 delta?: string;
                 sources?: ChatSource[];
+                citations?: Array<{ chunkId: string; docName: string; quote: string }>;
+                grounded?: boolean;
+                missingInfo?: string | null;
                 webSearchUsed?: boolean;
               };
 
@@ -111,6 +118,24 @@ export function useChat(spaceId: string | null) {
               } else if (event.type === "sources") {
                 sources = event.sources ?? [];
                 usedWebSearch = event.webSearchUsed ?? false;
+              } else if (event.type === "final") {
+                sources = (event.citations ?? []).map((citation) => ({
+                  chunkId: citation.chunkId,
+                  docName: citation.docName,
+                  snippet: citation.quote,
+                }));
+                usedWebSearch = event.webSearchUsed ?? false;
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId
+                      ? {
+                          ...m,
+                          grounded: event.grounded,
+                          missingInfo: event.missingInfo ?? null,
+                        }
+                      : m
+                  )
+                );
               }
             } catch {
               // ignore parse errors

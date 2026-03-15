@@ -4,6 +4,7 @@ import { Loader2, FileText, FileAudio, Copy, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/tools/doc-chat/components/MarkdownRenderer";
 import type { AurisDocument } from "../lib/useDocuments";
+import { getAurisHeaders, getAurisIdentityQueryParam } from "@/tools/auris-lm/lib/clientIdentity";
 
 interface DocumentWithText extends AurisDocument {
   extractedText: string;
@@ -34,7 +35,9 @@ export function DocumentPreviewModal({
     setData(null);
     setError(null);
     setLoading(true);
-    fetch(`/api/auris-lm/spaces/${spaceId}/documents/${doc.id}`)
+    fetch(`/api/auris-lm/spaces/${spaceId}/documents/${doc.id}`, {
+      headers: getAurisHeaders(),
+    })
       .then(async (res) => {
         if (!res.ok) throw new Error("No se pudo cargar el documento");
         const json = await res.json() as { document: DocumentWithText };
@@ -108,7 +111,7 @@ export function DocumentPreviewModal({
           {/* PDF inline viewer */}
           {!loading && !error && doc.mimeType === "application/pdf" && (
             <iframe
-              src={`/api/auris-lm/spaces/${spaceId}/documents/${doc.id}/download?inline=true`}
+              src={`/api/auris-lm/spaces/${spaceId}/documents/${doc.id}/download?inline=true&${getAurisIdentityQueryParam()}`}
               title={doc.originalName}
               className="w-full h-full min-h-[60vh] border-0 rounded-lg"
             />

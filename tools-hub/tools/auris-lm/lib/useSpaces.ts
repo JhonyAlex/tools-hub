@@ -1,5 +1,6 @@
 "use client";
 import { useState, useCallback, useEffect } from "react";
+import { getAurisHeaders } from "@/tools/auris-lm/lib/clientIdentity";
 
 export interface AurisSpace {
   id: string;
@@ -19,7 +20,9 @@ export function useSpaces() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch("/api/auris-lm/spaces");
+      const res = await fetch("/api/auris-lm/spaces", {
+        headers: getAurisHeaders(),
+      });
       if (!res.ok) throw new Error("Error al cargar espacios");
       const data = await res.json();
       setSpaces(data.spaces ?? []);
@@ -39,7 +42,7 @@ export function useSpaces() {
       try {
         const res = await fetch("/api/auris-lm/spaces", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAurisHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ name, description }),
         });
         if (!res.ok) throw new Error("Error al crear espacio");
@@ -59,7 +62,7 @@ export function useSpaces() {
       try {
         const res = await fetch(`/api/auris-lm/spaces/${id}`, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: getAurisHeaders({ "Content-Type": "application/json" }),
           body: JSON.stringify({ name, description }),
         });
         if (!res.ok) return false;
@@ -79,6 +82,7 @@ export function useSpaces() {
     try {
       const res = await fetch(`/api/auris-lm/spaces/${id}`, {
         method: "DELETE",
+        headers: getAurisHeaders(),
       });
       if (!res.ok) return false;
       setSpaces((prev) => prev.filter((s) => s.id !== id));

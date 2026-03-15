@@ -1,5 +1,10 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
+import {
+  getAurisHeaders,
+  getAurisIdentityQueryParam,
+  getAurisUserId,
+} from "@/tools/auris-lm/lib/clientIdentity";
 
 export interface AurisDocument {
   id: string;
@@ -8,7 +13,7 @@ export interface AurisDocument {
   storedPath: string;
   mimeType: string;
   fileSize: number;
-  status: "processing" | "ready" | "error";
+  status: "queued" | "processing" | "ready" | "partial" | "error";
   errorMessage?: string | null;
   createdAt: string;
 }
@@ -24,7 +29,9 @@ export function useDocuments(spaceId: string | null) {
     if (!spaceId) return;
     try {
       if (!silent) setLoading(true);
-      const res = await fetch(`/api/auris-lm/spaces/${spaceId}/documents`);
+      const res = await fetch(`/api/auris-lm/spaces/${spaceId}/documents`, {
+        headers: getAurisHeaders(),
+      });
       if (!res.ok) return;
       const data = (await res.json()) as { documents: AurisDocument[] };
       const incoming = data.documents ?? [];
@@ -81,8 +88,16 @@ export function useDocuments(spaceId: string | null) {
           });
           xhr.addEventListener("load", () => {
             if (xhr.status >= 200 && xhr.status < 300) {
-              const data = JSON.parse(xhr.responseText) as { document: AurisDocument };
-              setDocuments((prev) => [data.document, ...prev]);
+              const data = JSON.parse(xhr.responseText) as {
+                document?: AurisDocument;
+                documents?: AurisDocument[];
+              };
+              const incoming = data.documents ?? (data.document ? [data.document] : []);
+              setDocuments((prev) => {
+                const seen = new Set(prev.map((d) => d.id));
+                const merged = [...incoming.filter((d) => !seen.has(d.id)), ...prev];
+                return merged;
+              });
               resolve(true);
             } else {
               resolve(false);
@@ -90,6 +105,7 @@ export function useDocuments(spaceId: string | null) {
           });
           xhr.addEventListener("error", () => resolve(false));
           xhr.open("POST", `/api/auris-lm/spaces/${spaceId}/documents`);
+          xhr.setRequestHeader("x-user-id", getAurisUserId());
           xhr.send(formData);
         });
       } finally {
@@ -106,7 +122,10 @@ export function useDocuments(spaceId: string | null) {
       try {
         const res = await fetch(
           `/api/auris-lm/spaces/${spaceId}/documents/${docId}`,
-          { method: "DELETE" }
+          {
+            method: "DELETE",
+            headers: getAurisHeaders(),
+          }
         );
         if (!res.ok) return false;
         setDocuments((prev) => prev.filter((d) => d.id !== docId));
@@ -122,7 +141,7 @@ export function useDocuments(spaceId: string | null) {
     (docId: string, originalName: string) => {
       if (!spaceId) return;
       const a = document.createElement("a");
-      a.href = `/api/auris-lm/spaces/${spaceId}/documents/${docId}/download`;
+      a.href = `/api/auris-lm/spaces/${spaceId}/documents/${docId}/download?${getAurisIdentityQueryParam()}`;
       a.download = originalName;
       a.click();
     },

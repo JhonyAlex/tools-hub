@@ -3,6 +3,7 @@
 import { db } from "@/core/lib/db";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { createHash } from "crypto";
 import { UPLOADS_BASE } from "@/core/lib/uploads";
 
 // ============================================================
@@ -73,10 +74,19 @@ export async function exportToAuris(
     mimeType: string
 ): Promise<ExportResult> {
     try {
+        const space = await db.aurisLMSpace.findUnique({
+            where: { id: spaceId },
+            select: { id: true, userId: true },
+        });
+        if (!space) {
+            return { success: false, error: "Espacio de AurisLM no encontrado." };
+        }
+
         // Generate unique document ID and file path
         const docId = crypto.randomUUID ? crypto.randomUUID() : `doc_${Date.now()}`;
         const textBuffer = Buffer.from(extractedText, "utf-8");
         const fileSize = textBuffer.length;
+        const checksum = createHash("sha256").update(textBuffer).digest("hex");
 
         // Save file to server
         const spaceUploadsDir = path.join(UPLOADS_BASE, "auris-lm", spaceId);
@@ -92,10 +102,12 @@ export async function exportToAuris(
         const doc = await db.aurisLMDocument.create({
             data: {
                 id: docId,
+                userId: space.userId,
                 spaceId,
+                checksum,
                 originalName: fileName,
                 storedPath,
-                mimeType: "text/plain",
+                mimeType,
                 fileSize,
                 extractedText,
                 status: "ready",
@@ -106,8 +118,11 @@ export async function exportToAuris(
         const chunks = chunkText(extractedText);
         await db.aurisLMChunk.createMany({
             data: chunks.map((content, index) => ({
+                userId: space.userId,
                 documentId: doc.id,
                 spaceId,
+                modality: "text",
+                sourceKind: "text",
                 content,
                 chunkIndex: index,
                 tokenCount: estimateTokens(content),

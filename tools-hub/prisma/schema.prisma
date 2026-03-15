@@ -56,56 +56,71 @@ model MaintenanceReportSemMes {
 // ============ AURIS LM TOOL ============
 model AurisLMSpace {
   id          String              @id @default(cuid())
+  userId      String
   name        String
   description String?
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   documents   AurisLMDocument[]
   messages    AurisLMChatMessage[]
+
+  @@index([userId, updatedAt])
 }
 
 model AurisLMDocument {
   id            String        @id @default(cuid())
+  userId        String
   spaceId       String
   space         AurisLMSpace  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   originalName  String
   storedPath    String        // relative to /app/uploads
   mimeType      String
   fileSize      Int
+  checksum      String?
   extractedText String        @db.Text
-  status        String        @default("processing") // "processing" | "ready" | "error"
+  status        String        @default("queued") // "queued" | "processing" | "ready" | "partial" | "error"
   errorMessage  String?
   createdAt     DateTime      @default(now())
   chunks        AurisLMChunk[]
 
+  @@index([userId, spaceId])
   @@index([spaceId])
   @@index([status])
 }
 
 model AurisLMChunk {
   id          String          @id @default(cuid())
+  userId      String
   documentId  String
   document    AurisLMDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   spaceId     String
+  modality    String          @default("text") // "text" | "ocr" | "audio"
+  sourceKind  String          @default("text") // "pdf" | "image" | "audio" | "text"
+  sourcePage  Int?
   content     String          @db.Text
+  embedding   Unsupported("vector(1536)")?
   chunkIndex  Int
   tokenCount  Int             @default(0)
   createdAt   DateTime        @default(now())
 
+  @@index([userId, spaceId])
   @@index([spaceId])
   @@index([documentId])
 }
 
 model AurisLMChatMessage {
   id             String       @id @default(cuid())
+  userId         String
   spaceId        String
   space          AurisLMSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   role           String       // "user" | "assistant"
   content        String       @db.Text
+  grounded       Boolean?
   webSearchUsed  Boolean      @default(false)
   sources        Json?        // [{docName: string, snippet: string}]
   createdAt      DateTime     @default(now())
 
+  @@index([userId, spaceId, createdAt])
   @@index([spaceId])
   @@index([createdAt])
 }

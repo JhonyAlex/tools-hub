@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { db } from "@/core/lib/db";
-import { rankChunks, type ChunkData } from "@/tools/auris-lm/lib/ragEngine";
+import { getRequestUserId, unauthorizedResponse } from "@/core/lib/requestUser";
+import { retrieveRelevantChunks } from "@/tools/auris-lm/lib/semanticRetriever";
 
 interface ChatHistoryItem {
   role: "user" | "assistant";
@@ -19,26 +21,79 @@ interface BraveSearchResponse {
   };
 }
 
-interface OpenRouterDelta {
+interface Citation {
+  chunkId: string;
+  docName: string;
+  quote: string;
+}
+
+interface StructuredAnswer {
+  answer: string;
+  grounded: boolean;
+  missingInfo: string | null;
+  citations: Citation[];
+}
+
+interface OpenRouterMessage {
   content?: string;
 }
 
 interface OpenRouterChoice {
-  delta?: OpenRouterDelta;
-  finish_reason?: string | null;
+  message?: OpenRouterMessage;
 }
 
-interface OpenRouterChunk {
+interface OpenRouterResponse {
   choices?: OpenRouterChoice[];
+}
+
+const RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    answer: { type: "string" },
+    grounded: { type: "boolean" },
+    missingInfo: { type: ["string", "null"] },
+    citations: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          chunkId: { type: "string" },
+          docName: { type: "string" },
+          quote: { type: "string" },
+        },
+        required: ["chunkId", "docName", "quote"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["answer", "grounded", "missingInfo", "citations"],
+  additionalProperties: false,
+};
+
+function parseStructuredAnswer(raw: string): StructuredAnswer | null {
+  try {
+    return JSON.parse(raw) as StructuredAnswer;
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]) as StructuredAnswer;
+    } catch {
+      return null;
+    }
+  }
 }
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const userId = getRequestUserId(req);
+  if (!userId) return unauthorizedResponse();
+
   const { id: spaceId } = await params;
 
-  const body = await req.json() as {
+  const body = (await req.json()) as {
     message: string;
     webSearch?: boolean;
     history?: ChatHistoryItem[];
@@ -47,8 +102,23 @@ export async function POST(
   const { message, webSearch = false, history = [] } = body;
 
   if (!message?.trim()) {
-    return new Response(JSON.stringify({ error: "Mensaje vacío" }), {
+    return new Response(JSON.stringify({ error: "Mensaje vacio" }), {
       status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const space = await db.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT id
+    FROM "AurisLMSpace"
+    WHERE id = ${spaceId}
+      AND "userId" = ${userId}
+    LIMIT 1
+  `);
+
+  if (space.length === 0) {
+    return new Response(JSON.stringify({ error: "Espacio no encontrado" }), {
+      status: 404,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -58,35 +128,40 @@ export async function POST(
   const stream = new ReadableStream({
     async start(controller) {
       const sendEvent = (data: object) => {
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
-        );
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       };
 
       try {
-        // 1. Fetch all chunks for the space (BM25 is in-memory)
-        const dbChunks = await db.aurisLMChunk.findMany({
-          where: { spaceId },
-          select: {
-            id: true,
-            documentId: true,
-            spaceId: true,
-            content: true,
-            chunkIndex: true,
-            document: { select: { originalName: true } },
-          },
+        const topChunks = await retrieveRelevantChunks({
+          userId,
+          spaceId,
+          query: message,
+          topK: 8,
         });
 
-        const chunks = dbChunks as ChunkData[];
-        const topChunks = rankChunks(message, chunks, 8);
+        const availableByChunk = new Map(
+          topChunks.map((chunk) => [
+            chunk.id,
+            {
+              chunkId: chunk.id,
+              docName: chunk.docName,
+              quote: chunk.content.slice(0, 280),
+            },
+          ])
+        );
 
-        // Build sources for client
-        const sources = topChunks.map((c) => ({
-          docName: c.docName,
-          snippet: c.content.slice(0, 200) + (c.content.length > 200 ? "…" : ""),
-        }));
+        const hasDocContext = topChunks.length > 0;
+        const docContext = topChunks
+          .map((chunk, idx) => {
+            return [
+              `[Chunk ${idx + 1}]`,
+              `chunkId: ${chunk.id}`,
+              `docName: ${chunk.docName}`,
+              `content: ${chunk.content}`,
+            ].join("\n");
+          })
+          .join("\n\n---\n\n");
 
-        // 2. Optional Brave web search
         let webContext = "";
         const usedWebSearch = webSearch;
 
@@ -113,49 +188,36 @@ export async function POST(
                   )
                   .join("\n\n");
               }
-            } catch (e) {
-              console.error("[AurisLM] Brave search error:", e);
+            } catch (error) {
+              console.error("[AurisLM] Brave search error:", error);
             }
           }
         }
 
-        // 3. Build system prompt
-        const docContext = topChunks
-          .map((c, i) => `[Doc ${i + 1} – ${c.docName}]\n${c.content}`)
-          .join("\n\n---\n\n");
-
-        const hasDocContext = docContext.trim().length > 0;
-
         const hasWebContext = webContext.trim().length > 0;
 
-        const systemPrompt = `Eres AurisLM, un asistente de análisis de documentos preciso y confiable.
+        const systemPrompt = `Eres AurisLM, asistente RAG de alta precision.
 
-REGLAS:
-${hasDocContext
-            ? `1. Responde principalmente con información del CONTEXTO DE DOCUMENTOS.
-2. Cita el documento fuente cuando uses información de él: "(Fuente: [nombre del doc])".
-3. Si la información no está en los documentos${hasWebContext ? " pero sí en el contexto web, usa el contexto web e indícalo con \"(Fuente: Web)\"" : ", di exactamente: \"No encontré esa información en los documentos de este espacio.\""}.
-4. NO inventes información ni uses conocimiento propio que no aparezca en los contextos proporcionados.`
-            : hasWebContext
-              ? `1. No hay documentos relevantes en el espacio para esta pregunta. Responde usando el CONTEXTO WEB proporcionado.
-2. Indica siempre "(Fuente: Web)" cuando uses información web.
-3. NO inventes información que no aparezca en el contexto web.`
-              : `1. No hay documentos en este espacio ni contexto web disponible.
-2. Responde EXACTAMENTE: "No encontré esa información en los documentos de este espacio."`
-          }
-5. Sé directo, claro y conciso. Responde en el idioma de la pregunta del usuario.
-6. Usa formato Markdown para estructurar tus respuestas: **negritas** para énfasis, listas con viñetas, encabezados cuando sea apropiado, y párrafos bien separados. Esto mejora la legibilidad.
+REGLAS OBLIGATORIAS:
+1. Usa unicamente el CONTEXTO RECUPERADO entregado abajo.
+2. Si la respuesta no esta en ese contexto, responde que no hay evidencia suficiente.
+3. No inventes datos, nombres, fechas ni cifras.
+4. Cita con precision usando chunkId y docName de los bloques disponibles.
+5. Si usas contexto web, indicalo en missingInfo o en answer.
+6. Responde en el idioma del usuario.
 
-${hasDocContext ? `CONTEXTO DE DOCUMENTOS:\n${docContext}` : ""}${hasWebContext ? `\n\nCONTEXTO WEB (búsqueda en tiempo real):\n${webContext}` : ""}`.trim();
+SALIDA:
+Devuelve JSON valido que cumpla estrictamente el schema solicitado.
 
-        // 4. Build messages for OpenRouter
+${hasDocContext ? `CONTEXTO RECUPERADO:\n${docContext}` : "CONTEXTO RECUPERADO: (vacio)"}
+${hasWebContext ? `\n\nCONTEXTO WEB:\n${webContext}` : ""}`.trim();
+
         const openRouterMessages = [
           { role: "system", content: systemPrompt },
           ...history.slice(-6).map((m) => ({ role: m.role, content: m.content })),
           { role: "user", content: message },
         ];
 
-        // 5. Stream from OpenRouter (DeepSeek v3.2)
         const orKey = process.env.OPENROUTER_API_KEY;
         if (!orKey) {
           sendEvent({ type: "delta", delta: "Error: OPENROUTER_API_KEY no configurada." });
@@ -175,76 +237,110 @@ ${hasDocContext ? `CONTEXTO DE DOCUMENTOS:\n${docContext}` : ""}${hasWebContext 
           body: JSON.stringify({
             model: "deepseek/deepseek-v3.2",
             messages: openRouterMessages,
-            stream: true,
+            stream: false,
             temperature: 0.1,
             max_tokens: 2048,
+            response_format: {
+              type: "json_schema",
+              json_schema: {
+                name: "auris_grounded_response",
+                strict: true,
+                schema: RESPONSE_SCHEMA,
+              },
+            },
           }),
         });
 
-        if (!orRes.ok || !orRes.body) {
+        if (!orRes.ok) {
           const errText = await orRes.text().catch(() => "unknown");
-          sendEvent({ type: "delta", delta: `Error del servidor de IA: ${orRes.status} – ${errText}` });
+          sendEvent({ type: "delta", delta: `Error del servidor de IA: ${orRes.status} - ${errText}` });
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
           return;
         }
 
-        // Stream the response
-        const reader = orRes.body.getReader();
-        const dec = new TextDecoder();
-        let fullContent = "";
-        let buf = "";
+        const responsePayload = (await orRes.json()) as OpenRouterResponse;
+        const rawContent = responsePayload.choices?.[0]?.message?.content ?? "";
+        const parsed = parseStructuredAnswer(rawContent);
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        const structured: StructuredAnswer = parsed ?? {
+          answer: "No pude estructurar la respuesta. Intenta reformular tu pregunta.",
+          grounded: false,
+          missingInfo: "Respuesta no estructurada por el modelo",
+          citations: [],
+        };
 
-          buf += dec.decode(value, { stream: true });
-          const lines = buf.split("\n");
-          buf = lines.pop() ?? "";
+        const validatedCitations = structured.citations
+          .map((citation) => {
+            const available = availableByChunk.get(citation.chunkId);
+            if (!available) return null;
+            return {
+              chunkId: citation.chunkId,
+              docName: citation.docName || available.docName,
+              quote: citation.quote || available.quote,
+            };
+          })
+          .filter((citation): citation is Citation => citation !== null);
 
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const raw = line.slice(6).trim();
-            if (raw === "[DONE]") continue;
-            try {
-              const chunk = JSON.parse(raw) as OpenRouterChunk;
-              const delta = chunk.choices?.[0]?.delta?.content;
-              if (delta) {
-                fullContent += delta;
-                sendEvent({ type: "delta", delta });
-              }
-            } catch {
-              // ignore
-            }
-          }
+        const answer = structured.answer.trim();
+        const chunkSize = 120;
+        for (let i = 0; i < answer.length; i += chunkSize) {
+          sendEvent({ type: "delta", delta: answer.slice(i, i + chunkSize) });
         }
 
-        // Send sources metadata
-        sendEvent({ type: "sources", sources, webSearchUsed: usedWebSearch });
+        sendEvent({
+          type: "final",
+          grounded: structured.grounded,
+          missingInfo: structured.missingInfo,
+          citations: validatedCitations,
+          webSearchUsed: usedWebSearch,
+        });
+
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 
-        // 6. Persist messages to DB (fire and forget)
         void (async () => {
           try {
-            await db.aurisLMChatMessage.createMany({
-              data: [
-                {
-                  spaceId,
-                  role: "user",
-                  content: message,
-                  webSearchUsed: false,
-                },
-                {
-                  spaceId,
-                  role: "assistant",
-                  content: fullContent,
-                  webSearchUsed: usedWebSearch,
-                  sources: sources.length > 0 ? (sources as object[]) : undefined,
-                },
-              ],
-            });
-            // Update space updatedAt
+            await db.$executeRaw(Prisma.sql`
+              INSERT INTO "AurisLMChatMessage" (
+                id,
+                "userId",
+                "spaceId",
+                role,
+                content,
+                "webSearchUsed"
+              )
+              VALUES (
+                ${crypto.randomUUID()},
+                ${userId},
+                ${spaceId},
+                ${"user"},
+                ${message},
+                ${false}
+              )
+            `);
+
+            await db.$executeRaw(Prisma.sql`
+              INSERT INTO "AurisLMChatMessage" (
+                id,
+                "userId",
+                "spaceId",
+                role,
+                content,
+                grounded,
+                "webSearchUsed",
+                sources
+              )
+              VALUES (
+                ${crypto.randomUUID()},
+                ${userId},
+                ${spaceId},
+                ${"assistant"},
+                ${answer},
+                ${structured.grounded},
+                ${usedWebSearch},
+                ${validatedCitations.length > 0 ? JSON.stringify(validatedCitations) : null}::jsonb
+              )
+            `);
             await db.aurisLMSpace.update({
               where: { id: spaceId },
               data: { updatedAt: new Date() },
@@ -255,7 +351,7 @@ ${hasDocContext ? `CONTEXTO DE DOCUMENTOS:\n${docContext}` : ""}${hasWebContext 
         })();
       } catch (err) {
         console.error("[AurisLM] chat stream error:", err);
-        sendEvent({ type: "delta", delta: "Ocurrió un error. Por favor intenta de nuevo." });
+        sendEvent({ type: "delta", delta: "Ocurrio un error. Por favor intenta de nuevo." });
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       } finally {
         controller.close();
