@@ -310,11 +310,11 @@ export function DocumentList({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    {
+                    <div className="flex items-center gap-2 min-w-0">
                       <button
                         type="button"
                         className={cn(
-                          "block w-full text-left text-sm font-semibold leading-snug text-foreground",
+                          "min-w-0 flex-1 text-left text-sm font-semibold leading-snug text-foreground",
                           expandedNameDocId === doc.id ? "whitespace-normal break-words" : "truncate"
                         )}
                         title={doc.originalName}
@@ -325,12 +325,12 @@ export function DocumentList({
                       >
                         {doc.originalName}
                       </button>
-                    }
-
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-muted-foreground/60">
+                      <span className="shrink-0 text-[10px] font-bold text-muted-foreground/60">
                         {formatBytes(doc.fileSize)}
                       </span>
+                    </div>
+
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       <StatusBadge status={doc.status} errorMessage={doc.errorMessage} />
                     </div>
                     {(doc.status === "error" || doc.status === "partial") && doc.errorMessage && (
@@ -339,65 +339,68 @@ export function DocumentList({
                       </p>
                     )}
                   </div>
+                </div>
 
-                  <div className="flex shrink-0 items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                    {(doc.status === "ready" || doc.status === "error" || doc.status === "partial") && (
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        className="h-8 w-8 rounded-md"
-                        onClick={() => setPreviewDoc(doc)}
-                        title="Abrir fuente"
-                      >
-                        <Eye className="size-3.5" />
-                      </Button>
+                <div
+                  className="mt-2 flex items-center justify-end gap-0.5 border-t border-dashed pt-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {(doc.status === "ready" || doc.status === "error" || doc.status === "partial") && (
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      className="h-8 w-8 rounded-md"
+                      onClick={() => setPreviewDoc(doc)}
+                      title="Abrir fuente"
+                    >
+                      <Eye className="size-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-md"
+                    onClick={() => void handleSuggestName(doc)}
+                    title="Nombrar según contenido"
+                    disabled={
+                      suggestingDocId === doc.id ||
+                      doc.status === "queued" ||
+                      doc.status === "processing"
+                    }
+                  >
+                    {suggestingDocId === doc.id ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-3.5" />
                     )}
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      className="h-8 w-8 rounded-md"
-                      onClick={() => void handleSuggestName(doc)}
-                      title="Nombrar según contenido"
-                      disabled={
-                        suggestingDocId === doc.id ||
-                        doc.status === "queued" ||
-                        doc.status === "processing"
-                      }
-                    >
-                      {suggestingDocId === doc.id ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Sparkles className="size-3.5" />
-                      )}
-                    </Button>
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      className="h-8 w-8 rounded-md"
-                      onClick={() => startRename(doc)}
-                      title="Renombrar fuente"
-                    >
-                      <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      className="h-8 w-8 rounded-md"
-                      onClick={() => onDownload(doc.id, doc.originalName)}
-                      title="Descargar"
-                    >
-                      <Download className="size-3.5" />
-                    </Button>
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      className="h-8 w-8 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => onDelete(doc.id)}
-                      title="Eliminar"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
+                  </Button>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-md"
+                    onClick={() => startRename(doc)}
+                    title="Renombrar fuente"
+                  >
+                    <Pencil className="size-3.5" />
+                  </Button>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-md"
+                    onClick={() => onDownload(doc.id, doc.originalName)}
+                    title="Descargar"
+                  >
+                    <Download className="size-3.5" />
+                  </Button>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => onDelete(doc.id)}
+                    title="Eliminar"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
                 </div>
               </div>
             ))}
