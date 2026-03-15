@@ -72,6 +72,19 @@ function toTitleCase(input: string): string {
     .join(" ");
 }
 
+function stripFileExtension(name: string): string {
+  return name.replace(/\.[a-z0-9]{1,8}$/i, "").trim();
+}
+
+function normalizeForComparison(text: string): string {
+  return stripFileExtension(text)
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/[^a-z0-9\s\u00c0-\u017f]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function getMeaningfulKeywords(text: string): string[] {
   const tokens = tokenize(text).filter(
     (w) => w.length >= 4 && !STOPWORDS.has(w) && !BANNED_TITLE_TOKENS.has(w)
@@ -147,6 +160,16 @@ function buildKeywordTitle(keywords: string[]): string {
   return toTitleCase(`${keywords[0]} ${keywords[1]} ${keywords[2]}`);
 }
 
+function buildAlternativeKeywordTitle(keywords: string[]): string {
+  if (keywords.length >= 4) {
+    return toTitleCase(`${keywords[1]} ${keywords[2]} ${keywords[3]}`);
+  }
+  if (keywords.length >= 3) {
+    return toTitleCase(`${keywords[1]} y ${keywords[2]}`);
+  }
+  return buildKeywordTitle(keywords);
+}
+
 function relevanceScore(title: string, keywords: string[]): number {
   if (!title.trim()) return 0;
   if (keywords.length === 0) return 0;
@@ -183,7 +206,32 @@ function generateLocalSuggestion(extractedText: string, fallback: string): strin
 }
 
 function isSameName(a: string, b: string): boolean {
-  return a.trim().toLowerCase() === b.trim().toLowerCase();
+  return normalizeForComparison(a) === normalizeForComparison(b);
+}
+
+function ensureDifferentSuggestion(
+  suggestion: string,
+  originalName: string,
+  keywords: string[]
+): string {
+  if (!isSameName(suggestion, originalName)) return suggestion;
+
+  const primary = normalizeSuggestedName(buildKeywordTitle(keywords.slice(0, 3)), originalName);
+  if (!isSameName(primary, originalName)) return primary;
+
+  const alternative = normalizeSuggestedName(
+    buildAlternativeKeywordTitle(keywords.slice(0, 4)),
+    originalName
+  );
+  if (!isSameName(alternative, originalName)) return alternative;
+
+  const sourceTokens = tokenize(suggestion);
+  const extraKeyword = keywords.find((keyword) => !sourceTokens.includes(keyword));
+  if (extraKeyword) {
+    return normalizeSuggestedName(`${suggestion} ${toTitleCase(extraKeyword)}`, originalName);
+  }
+
+  return suggestion;
 }
 
 function isHighQualitySuggestion(
@@ -205,8 +253,11 @@ function isHighQualitySuggestion(
   );
   if (meaningfulWords.length < 1) return false;
 
-  // Require at least one overlap with document keywords.
-  return relevanceScore(suggestion, keywords) >= 1;
+  const overlapScore = relevanceScore(suggestion, keywords);
+  if (overlapScore >= 1) return true;
+
+  // Accept semantically plausible titles even without literal token overlap.
+  return meaningfulWords.length >= 2;
 }
 
 export async function POST(
@@ -302,7 +353,11 @@ export async function POST(
         } else {
           const payload = (await response.json()) as OpenRouterResponse;
           const rawSuggestion = payload.choices?.[0]?.message?.content?.trim() ?? "";
-          const normalized = normalizeSuggestedName(rawSuggestion, document.originalName);
+          const normalized = ensureDifferentSuggestion(
+            normalizeSuggestedName(rawSuggestion, document.originalName),
+            document.originalName,
+            keywords
+          );
           if (isHighQualitySuggestion(normalized, document.originalName, keywords, document.extractedText)) {
             suggestedName = normalized;
           } else {
@@ -318,9 +373,17 @@ export async function POST(
     }
 
     if (usedFallback) {
-      suggestedName = generateLocalSuggestion(document.extractedText, document.originalName);
+      suggestedName = ensureDifferentSuggestion(
+        generateLocalSuggestion(document.extractedText, document.originalName),
+        document.originalName,
+        keywords
+      );
       if (!isHighQualitySuggestion(suggestedName, document.originalName, keywords, document.extractedText)) {
-        suggestedName = normalizeSuggestedName(buildKeywordTitle(keywords.slice(0, 2)), document.originalName);
+        suggestedName = ensureDifferentSuggestion(
+          normalizeSuggestedName(buildKeywordTitle(keywords.slice(0, 2)), document.originalName),
+          document.originalName,
+          keywords
+        );
       }
     }
 
