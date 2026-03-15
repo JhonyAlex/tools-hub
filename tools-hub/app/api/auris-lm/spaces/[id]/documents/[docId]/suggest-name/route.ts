@@ -14,7 +14,7 @@ interface OpenRouterResponse {
   choices?: OpenRouterChoice[];
 }
 
-const MODEL = "openai/gpt-oss-120b:free";
+const MODEL = "google/gemini-2.5-flash-lite";
 
 const STOPWORDS = new Set([
   "de", "la", "el", "los", "las", "un", "una", "unos", "unas", "y", "o", "en",
@@ -57,6 +57,11 @@ function tokenize(text: string): string[] {
     .split(/\s+/)
     .map((w) => w.trim())
     .filter(Boolean);
+}
+
+function truncateChars(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, maxChars).trim()}...`;
 }
 
 function toTitleCase(input: string): string {
@@ -112,6 +117,29 @@ function extractHeadingCandidate(text: string): string | null {
   return null;
 }
 
+function buildDistributedExcerpt(text: string): string {
+  const compact = text.replace(/\s+/g, " ").trim();
+  if (!compact) return "";
+
+  if (compact.length <= 3000) {
+    return compact;
+  }
+
+  const third = Math.floor(compact.length / 3);
+  const start = truncateChars(compact.slice(0, 850).trim(), 850);
+  const middle = truncateChars(
+    compact.slice(Math.max(0, third - 425), Math.min(compact.length, third + 425)).trim(),
+    850
+  );
+  const end = truncateChars(compact.slice(Math.max(0, compact.length - 850)).trim(), 850);
+
+  return [
+    `Inicio: ${start}`,
+    `Parte media: ${middle}`,
+    `Cierre: ${end}`,
+  ].join("\n\n");
+}
+
 function buildKeywordTitle(keywords: string[]): string {
   if (keywords.length === 0) return "";
   if (keywords.length === 1) return toTitleCase(keywords[0]);
@@ -135,6 +163,14 @@ function relevanceScore(title: string, keywords: string[]): number {
   return score;
 }
 
+function isPrefixOfSourceTitle(title: string, sourceText: string): boolean {
+  const titleTokens = tokenize(title).filter((w) => !STOPWORDS.has(w));
+  const sourceTokens = tokenize(sourceText).filter((w) => !STOPWORDS.has(w));
+  if (titleTokens.length < 2 || sourceTokens.length < titleTokens.length) return false;
+
+  return titleTokens.every((token, index) => token === sourceTokens[index]);
+}
+
 function generateLocalSuggestion(extractedText: string, fallback: string): string {
   const heading = extractHeadingCandidate(extractedText);
   if (heading) {
@@ -153,10 +189,12 @@ function isSameName(a: string, b: string): boolean {
 function isHighQualitySuggestion(
   suggestion: string,
   originalName: string,
-  keywords: string[]
+  keywords: string[],
+  sourceText: string
 ): boolean {
   if (!suggestion.trim()) return false;
   if (isSameName(suggestion, originalName)) return false;
+  if (isPrefixOfSourceTitle(suggestion, sourceText)) return false;
 
   const words = suggestion.split(" ").filter(Boolean);
   if (words.length < 2 || words.length > 6) return false;
@@ -208,7 +246,7 @@ export async function POST(
       );
     }
 
-    const excerpt = document.extractedText.replace(/\s+/g, " ").trim().slice(0, 2400);
+    const excerpt = buildDistributedExcerpt(document.extractedText);
     const keywords = getMeaningfulKeywords(document.extractedText);
     let suggestedName = document.originalName;
     let usedFallback = false;
@@ -234,10 +272,13 @@ export async function POST(
                     "Genera un titulo corto y natural en espanol para una fuente documental.",
                     "Reglas estrictas:",
                     "1) Entre 2 y 6 palabras.",
-                    "2) Debe sonar como titulo real, no lista de keywords.",
-                    "3) Sin comillas, sin punto final, sin prefijos como 'Documento'.",
-                    "4) Debe reutilizar al menos una palabra clave del contenido.",
-                    "5) Responde SOLO con el titulo.",
+                    "2) Debe representar el tema global de TODA la fuente, no solo el inicio.",
+                    "3) Debe sonar como titulo real, no lista de keywords.",
+                    "4) No copies literalmente las primeras palabras del documento.",
+                    "5) Integra la idea principal considerando inicio, parte media y cierre.",
+                    "6) Sin comillas, sin punto final, sin prefijos como 'Documento'.",
+                    "7) Debe reutilizar al menos una palabra clave del contenido o un concepto equivalente claro.",
+                    "8) Responde SOLO con el titulo.",
                   ].join("\n"),
               },
               {
@@ -245,7 +286,8 @@ export async function POST(
                 content: [
                   `Nombre actual: ${document.originalName}`,
                   `Tipo MIME: ${document.mimeType}`,
-                  "Contenido de la fuente:",
+                  `Palabras clave: ${keywords.slice(0, 8).join(", ") || "sin palabras clave claras"}`,
+                  "Panorama de la fuente:",
                   excerpt,
                 ].join("\n\n"),
               },
@@ -261,7 +303,7 @@ export async function POST(
           const payload = (await response.json()) as OpenRouterResponse;
           const rawSuggestion = payload.choices?.[0]?.message?.content?.trim() ?? "";
           const normalized = normalizeSuggestedName(rawSuggestion, document.originalName);
-          if (isHighQualitySuggestion(normalized, document.originalName, keywords)) {
+          if (isHighQualitySuggestion(normalized, document.originalName, keywords, document.extractedText)) {
             suggestedName = normalized;
           } else {
             usedFallback = true;
@@ -277,7 +319,7 @@ export async function POST(
 
     if (usedFallback) {
       suggestedName = generateLocalSuggestion(document.extractedText, document.originalName);
-      if (!isHighQualitySuggestion(suggestedName, document.originalName, keywords)) {
+      if (!isHighQualitySuggestion(suggestedName, document.originalName, keywords, document.extractedText)) {
         suggestedName = normalizeSuggestedName(buildKeywordTitle(keywords.slice(0, 2)), document.originalName);
       }
     }
