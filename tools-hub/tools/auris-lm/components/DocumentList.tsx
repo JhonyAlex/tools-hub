@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
-import { FileText, FileAudio, Trash2, Download, Loader2, AlertCircle, CheckCircle2, ClipboardPaste, Upload, Eye } from "lucide-react";
+import { FileText, FileAudio, Trash2, Download, Loader2, AlertCircle, CheckCircle2, ClipboardPaste, Upload, Eye, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { AurisDocument } from "../lib/useDocuments";
 import { UploadDropzone } from "./UploadDropzone";
@@ -16,6 +17,7 @@ interface DocumentListProps {
   uploadProgress: number;
   onUpload: (files: File[]) => Promise<boolean>;
   onDelete: (id: string) => void;
+  onRename: (id: string, name: string) => Promise<boolean>;
   onDownload: (id: string, name: string) => void;
 }
 
@@ -30,6 +32,14 @@ function isAudioType(mimeType: string): boolean {
 }
 
 function StatusBadge({ status, errorMessage }: { status: AurisDocument["status"]; errorMessage?: string | null }) {
+  if (status === "queued") {
+    return (
+      <Badge variant="secondary" className="flex items-center gap-1.5 px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-wider bg-slate-500/10 text-slate-600 border-slate-500/20">
+        <Loader2 className="size-2.5 animate-spin" />
+        En cola
+      </Badge>
+    );
+  }
   if (status === "processing") {
     return (
       <Badge variant="secondary" className="flex items-center gap-1.5 px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 border-amber-500/20">
@@ -70,6 +80,7 @@ export function DocumentList({
   uploadProgress,
   onUpload,
   onDelete,
+  onRename,
   onDownload,
 }: DocumentListProps) {
   // ── Tabs: "file" or "text"
@@ -81,6 +92,41 @@ export function DocumentList({
   const [uploadError, setUploadError] = useState<string | null>(null);
   // ── Preview modal
   const [previewDoc, setPreviewDoc] = useState<AurisDocument | null>(null);
+  const [expandedNameDocId, setExpandedNameDocId] = useState<string | null>(null);
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState("");
+  const [renamingDocId, setRenamingDocId] = useState<string | null>(null);
+
+  const startRename = (doc: AurisDocument) => {
+    setEditingDocId(doc.id);
+    setDraftName(doc.originalName);
+  };
+
+  const cancelRename = () => {
+    setEditingDocId(null);
+    setDraftName("");
+    setRenamingDocId(null);
+  };
+
+  const submitRename = async (doc: AurisDocument) => {
+    const nextName = draftName.trim();
+    if (!nextName || nextName === doc.originalName) {
+      cancelRename();
+      return;
+    }
+
+    setRenamingDocId(doc.id);
+    const ok = await onRename(doc.id, nextName);
+    setRenamingDocId(null);
+
+    if (ok) {
+      setEditingDocId(null);
+      setDraftName("");
+      return;
+    }
+
+    setUploadError("No se pudo renombrar la fuente.");
+  };
 
   const handleAddText = async () => {
     const body = textBody.trim();
@@ -213,28 +259,32 @@ export function DocumentList({
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {documents.map((doc) => (
               <div
                 key={doc.id}
                 className={cn(
-                  "group relative flex flex-col gap-2 rounded-xl border bg-card p-3 transition-all duration-200 shadow-sm",
+                  "group relative rounded-xl border bg-card px-2.5 py-2 transition-all duration-200 shadow-sm",
                   doc.status === "error"
                     ? "border-destructive/30 bg-destructive/5"
                     : doc.status === "partial"
                       ? "border-amber-500/30 bg-amber-500/5"
+                      : doc.status === "queued"
+                        ? "border-slate-500/20 bg-slate-500/5"
                       : "hover:border-primary/30 hover:shadow-md",
                   (doc.status === "ready" || doc.status === "error" || doc.status === "partial") && "cursor-pointer"
                 )}
                 onClick={() => (doc.status === "ready" || doc.status === "error" || doc.status === "partial") && setPreviewDoc(doc)}
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-2.5">
                   <div className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
+                    "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors",
                     doc.status === "error"
                       ? "bg-destructive/10 text-destructive"
                       : doc.status === "partial"
                         ? "bg-amber-500/10 text-amber-700"
+                        : doc.status === "queued"
+                          ? "bg-slate-500/10 text-slate-600"
                         : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
                   )}>
                     {isAudioType(doc.mimeType) ? (
@@ -245,10 +295,61 @@ export function DocumentList({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate leading-none mb-1.5">
-                      {doc.originalName}
-                    </p>
-                    <div className="flex items-center gap-2">
+                    {editingDocId === doc.id ? (
+                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <Input
+                          value={draftName}
+                          onChange={(e) => setDraftName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              void submitRename(doc);
+                            }
+                            if (e.key === "Escape") {
+                              e.preventDefault();
+                              cancelRename();
+                            }
+                          }}
+                          className="h-8 rounded-lg text-sm"
+                          maxLength={160}
+                          autoFocus
+                        />
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-md"
+                          disabled={renamingDocId === doc.id}
+                          onClick={() => void submitRename(doc)}
+                        >
+                          {renamingDocId === doc.id ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                        </Button>
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-md"
+                          onClick={cancelRename}
+                        >
+                          <X className="size-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className={cn(
+                          "block w-full text-left text-sm font-semibold leading-snug text-foreground",
+                          expandedNameDocId === doc.id ? "whitespace-normal break-words" : "truncate"
+                        )}
+                        title={doc.originalName}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedNameDocId((current) => (current === doc.id ? null : doc.id));
+                        }}
+                      >
+                        {doc.originalName}
+                      </button>
+                    )}
+
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       <span className="text-[10px] font-bold text-muted-foreground/60">
                         {formatBytes(doc.fileSize)}
                       </span>
@@ -260,36 +361,47 @@ export function DocumentList({
                       </p>
                     )}
                   </div>
-                </div>
 
-                {/* Hover actions */}
-                <div className="flex items-center justify-end gap-1 mt-1 pt-2 border-t border-dashed opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                  {doc.status === "ready" && (
+                  <div className="flex shrink-0 items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                    {(doc.status === "ready" || doc.status === "error" || doc.status === "partial") && (
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        className="h-8 w-8 rounded-md"
+                        onClick={() => setPreviewDoc(doc)}
+                        title="Abrir fuente"
+                      >
+                        <Eye className="size-3.5" />
+                      </Button>
+                    )}
                     <Button
-                      size="icon"
+                      size="icon-sm"
                       variant="ghost"
-                      className="h-7 w-7 rounded-md"
-                      onClick={() => setPreviewDoc(doc)}
+                      className="h-8 w-8 rounded-md"
+                      onClick={() => startRename(doc)}
+                      title="Renombrar fuente"
                     >
-                      <Eye className="size-3.5" />
+                      <Pencil className="size-3.5" />
                     </Button>
-                  )}
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 rounded-md"
-                    onClick={() => onDownload(doc.id, doc.originalName)}
-                  >
-                    <Download className="size-3.5" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => onDelete(doc.id)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      className="h-8 w-8 rounded-md"
+                      onClick={() => onDownload(doc.id, doc.originalName)}
+                      title="Descargar"
+                    >
+                      <Download className="size-3.5" />
+                    </Button>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      className="h-8 w-8 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => onDelete(doc.id)}
+                      title="Eliminar"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

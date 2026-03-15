@@ -137,6 +137,12 @@ export function DocumentPreviewModal({
                   El documento aún se está procesando…
                 </div>
               )}
+              {data.status === "queued" && (
+                <div className="flex items-center gap-2 py-8 text-muted-foreground justify-center text-sm">
+                  <Loader2 className="size-4 animate-spin" />
+                  El archivo se subió correctamente y está en cola para procesarse…
+                </div>
+              )}
               {data.status === "ready" && data.extractedText ? (
                 doc.originalName && /\.(md|markdown)$/i.test(doc.originalName) ? (
                   <div className="prose prose-sm dark:prose-invert max-w-none text-foreground leading-relaxed">

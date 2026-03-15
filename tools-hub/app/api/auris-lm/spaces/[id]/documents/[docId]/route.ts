@@ -40,6 +40,55 @@ export async function GET(
   }
 }
 
+// PATCH /api/auris-lm/spaces/[id]/documents/[docId] – rename document
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string; docId: string }> }
+) {
+  try {
+    const userId = await getRequestUserId(req);
+    if (!userId) return unauthorizedResponse();
+
+    const { id: spaceId, docId } = await params;
+    const body = (await req.json()) as { originalName?: string };
+    const originalName = body.originalName?.trim();
+
+    if (!originalName) {
+      return NextResponse.json({ error: "El nombre es requerido" }, { status: 400 });
+    }
+
+    const existing = await db.aurisLMDocument.findFirst({
+      where: { id: docId, spaceId, userId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Documento no encontrado" }, { status: 404 });
+    }
+
+    const document = await db.aurisLMDocument.update({
+      where: { id: docId },
+      data: { originalName },
+      select: {
+        id: true,
+        spaceId: true,
+        originalName: true,
+        storedPath: true,
+        mimeType: true,
+        fileSize: true,
+        status: true,
+        errorMessage: true,
+        createdAt: true,
+      },
+    });
+
+    return NextResponse.json({ document });
+  } catch (err) {
+    console.error("[AurisLM] PATCH document:", err);
+    return NextResponse.json({ error: "Error al renombrar documento" }, { status: 500 });
+  }
+}
+
 // DELETE /api/auris-lm/spaces/[id]/documents/[docId]
 export async function DELETE(
   req: NextRequest,
