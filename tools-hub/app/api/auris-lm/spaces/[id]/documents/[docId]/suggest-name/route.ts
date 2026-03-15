@@ -21,10 +21,22 @@ const STOPWORDS = new Set([
   "a", "con", "por", "para", "del", "al", "que", "se", "su", "sus", "es", "son",
 ]);
 
+const BANNED_TITLE_TOKENS = new Set([
+  "documento",
+  "contenido",
+  "fuente",
+  "archivo",
+  "texto",
+  "informacion",
+  "información",
+]);
+
 function normalizeSuggestedName(raw: string, fallback: string): string {
   const cleaned = raw
     .replace(/<[^>]*>/g, " ")
+    .replace(/[\[\]{}()]/g, " ")
     .replace(/[`"'_*#]/g, " ")
+    .replace(/[;:!?.,]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -38,29 +50,125 @@ function normalizeSuggestedName(raw: string, fallback: string): string {
   return short || fallback;
 }
 
-function generateLocalSuggestion(extractedText: string, fallback: string): string {
-  const words = extractedText
+function tokenize(text: string): string[] {
+  return text
     .toLowerCase()
     .replace(/[^a-z0-9\s\u00c0-\u017f]/gi, " ")
     .split(/\s+/)
-    .filter((w) => w.length >= 4 && !STOPWORDS.has(w));
+    .map((w) => w.trim())
+    .filter(Boolean);
+}
+
+function toTitleCase(input: string): string {
+  return input
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function getMeaningfulKeywords(text: string): string[] {
+  const tokens = tokenize(text).filter(
+    (w) => w.length >= 4 && !STOPWORDS.has(w) && !BANNED_TITLE_TOKENS.has(w)
+  );
 
   const counts = new Map<string, number>();
-  for (const word of words) {
-    counts.set(word, (counts.get(word) ?? 0) + 1);
+  for (const token of tokens) {
+    counts.set(token, (counts.get(token) ?? 0) + 1);
   }
 
-  const top = Array.from(counts.entries())
+  return Array.from(counts.entries())
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 4)
-    .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1));
+    .slice(0, 10)
+    .map(([word]) => word);
+}
 
-  const candidate = top.join(" ").trim();
+function extractHeadingCandidate(text: string): string | null {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+
+  for (const line of lines) {
+    const normalized = normalizeSuggestedName(line, "");
+    if (!normalized) continue;
+
+    const words = normalized.split(" ").filter(Boolean);
+    if (words.length < 2 || words.length > 7) continue;
+
+    const hasLetter = /[a-z\u00c0-\u017f]/i.test(normalized);
+    if (!hasLetter) continue;
+
+    // Avoid generic labels as titles.
+    const allGeneric = words.every((word) =>
+      BANNED_TITLE_TOKENS.has(word.toLowerCase()) || STOPWORDS.has(word.toLowerCase())
+    );
+    if (allGeneric) continue;
+
+    return normalized;
+  }
+
+  return null;
+}
+
+function buildKeywordTitle(keywords: string[]): string {
+  if (keywords.length === 0) return "";
+  if (keywords.length === 1) return toTitleCase(keywords[0]);
+  if (keywords.length === 2) return toTitleCase(`${keywords[0]} y ${keywords[1]}`);
+  return toTitleCase(`${keywords[0]} ${keywords[1]} ${keywords[2]}`);
+}
+
+function relevanceScore(title: string, keywords: string[]): number {
+  if (!title.trim()) return 0;
+  if (keywords.length === 0) return 0;
+
+  const titleTokens = new Set(
+    tokenize(title).filter((w) => !STOPWORDS.has(w) && !BANNED_TITLE_TOKENS.has(w))
+  );
+
+  let score = 0;
+  for (const kw of keywords.slice(0, 8)) {
+    if (titleTokens.has(kw)) score += 1;
+  }
+
+  return score;
+}
+
+function generateLocalSuggestion(extractedText: string, fallback: string): string {
+  const heading = extractHeadingCandidate(extractedText);
+  if (heading) {
+    return normalizeSuggestedName(heading, fallback);
+  }
+
+  const keywords = getMeaningfulKeywords(extractedText);
+  const candidate = buildKeywordTitle(keywords.slice(0, 3));
   return normalizeSuggestedName(candidate, fallback);
 }
 
 function isSameName(a: string, b: string): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+function isHighQualitySuggestion(
+  suggestion: string,
+  originalName: string,
+  keywords: string[]
+): boolean {
+  if (!suggestion.trim()) return false;
+  if (isSameName(suggestion, originalName)) return false;
+
+  const words = suggestion.split(" ").filter(Boolean);
+  if (words.length < 2 || words.length > 6) return false;
+
+  // Avoid mostly generic titles.
+  const meaningfulWords = words.filter(
+    (w) => !STOPWORDS.has(w.toLowerCase()) && !BANNED_TITLE_TOKENS.has(w.toLowerCase())
+  );
+  if (meaningfulWords.length < 1) return false;
+
+  // Require at least one overlap with document keywords.
+  return relevanceScore(suggestion, keywords) >= 1;
 }
 
 export async function POST(
@@ -101,6 +209,7 @@ export async function POST(
     }
 
     const excerpt = document.extractedText.replace(/\s+/g, " ").trim().slice(0, 2400);
+    const keywords = getMeaningfulKeywords(document.extractedText);
     let suggestedName = document.originalName;
     let usedFallback = false;
 
@@ -115,13 +224,21 @@ export async function POST(
           },
           body: JSON.stringify({
             model: MODEL,
-            temperature: 0.2,
-            max_tokens: 24,
+            temperature: 0,
+            max_tokens: 32,
             messages: [
               {
                 role: "system",
                 content:
-                  "Genera un nombre corto y preciso para una fuente documental. Responde solo con una frase muy corta de 2 a 6 palabras, sin comillas, sin punto final, sin explicaciones.",
+                  [
+                    "Genera un titulo corto y natural en espanol para una fuente documental.",
+                    "Reglas estrictas:",
+                    "1) Entre 2 y 6 palabras.",
+                    "2) Debe sonar como titulo real, no lista de keywords.",
+                    "3) Sin comillas, sin punto final, sin prefijos como 'Documento'.",
+                    "4) Debe reutilizar al menos una palabra clave del contenido.",
+                    "5) Responde SOLO con el titulo.",
+                  ].join("\n"),
               },
               {
                 role: "user",
@@ -143,7 +260,12 @@ export async function POST(
         } else {
           const payload = (await response.json()) as OpenRouterResponse;
           const rawSuggestion = payload.choices?.[0]?.message?.content?.trim() ?? "";
-          suggestedName = normalizeSuggestedName(rawSuggestion, document.originalName);
+          const normalized = normalizeSuggestedName(rawSuggestion, document.originalName);
+          if (isHighQualitySuggestion(normalized, document.originalName, keywords)) {
+            suggestedName = normalized;
+          } else {
+            usedFallback = true;
+          }
         }
       } catch (providerError) {
         console.error("[AurisLM] Suggest name provider call failed:", providerError);
@@ -154,7 +276,10 @@ export async function POST(
     }
 
     if (usedFallback) {
-      suggestedName = generateLocalSuggestion(excerpt, document.originalName);
+      suggestedName = generateLocalSuggestion(document.extractedText, document.originalName);
+      if (!isHighQualitySuggestion(suggestedName, document.originalName, keywords)) {
+        suggestedName = normalizeSuggestedName(buildKeywordTitle(keywords.slice(0, 2)), document.originalName);
+      }
     }
 
     if (isSameName(suggestedName, document.originalName)) {
