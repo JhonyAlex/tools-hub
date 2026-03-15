@@ -35,7 +35,7 @@ interface StructuredAnswer {
 }
 
 interface OpenRouterMessage {
-  content?: string;
+  content?: unknown;
 }
 
 interface OpenRouterChoice {
@@ -70,14 +70,84 @@ const RESPONSE_SCHEMA = {
   additionalProperties: false,
 };
 
-function parseStructuredAnswer(raw: string): StructuredAnswer | null {
+function extractTextFromUnknownContent(content: unknown): string {
+  if (typeof content === "string") return content;
+
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (typeof part === "string") return part;
+        if (part && typeof part === "object") {
+          const maybeText = (part as { text?: unknown }).text;
+          if (typeof maybeText === "string") return maybeText;
+          const maybeContent = (part as { content?: unknown }).content;
+          if (typeof maybeContent === "string") return maybeContent;
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  if (content && typeof content === "object") {
+    const obj = content as { text?: unknown; content?: unknown };
+    if (typeof obj.text === "string") return obj.text;
+    if (typeof obj.content === "string") return obj.content;
+  }
+
+  return "";
+}
+
+function toStructuredAnswer(candidate: unknown): StructuredAnswer | null {
+  if (!candidate || typeof candidate !== "object") return null;
+  const value = candidate as Partial<StructuredAnswer>;
+  if (typeof value.answer !== "string") return null;
+  if (typeof value.grounded !== "boolean") return null;
+  if (!(typeof value.missingInfo === "string" || value.missingInfo === null || value.missingInfo === undefined)) {
+    return null;
+  }
+
+  const citations = Array.isArray(value.citations)
+    ? value.citations
+        .map((c) => {
+          if (!c || typeof c !== "object") return null;
+          const cit = c as Partial<Citation>;
+          if (typeof cit.chunkId !== "string") return null;
+          if (typeof cit.docName !== "string") return null;
+          if (typeof cit.quote !== "string") return null;
+          return { chunkId: cit.chunkId, docName: cit.docName, quote: cit.quote };
+        })
+        .filter((c): c is Citation => c !== null)
+    : [];
+
+  return {
+    answer: value.answer,
+    grounded: value.grounded,
+    missingInfo: value.missingInfo ?? null,
+    citations,
+  };
+}
+
+function parseStructuredAnswer(raw: unknown): StructuredAnswer | null {
+  const asObject = toStructuredAnswer(raw);
+  if (asObject) return asObject;
+
+  const rawText = extractTextFromUnknownContent(raw).trim();
+  if (!rawText) return null;
+
+  const normalized = rawText
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+
   try {
-    return JSON.parse(raw) as StructuredAnswer;
+    return toStructuredAnswer(JSON.parse(normalized));
   } catch {
-    const match = raw.match(/\{[\s\S]*\}/);
+    const match = normalized.match(/\{[\s\S]*\}/);
     if (!match) return null;
     try {
-      return JSON.parse(match[0]) as StructuredAnswer;
+      return toStructuredAnswer(JSON.parse(match[0]));
     } catch {
       return null;
     }
@@ -260,11 +330,12 @@ ${hasWebContext ? `\n\nCONTEXTO WEB:\n${webContext}` : ""}`.trim();
         }
 
         const responsePayload = (await orRes.json()) as OpenRouterResponse;
-        const rawContent = responsePayload.choices?.[0]?.message?.content ?? "";
+        const rawContent = responsePayload.choices?.[0]?.message?.content;
         const parsed = parseStructuredAnswer(rawContent);
+        const plainTextAnswer = extractTextFromUnknownContent(rawContent).trim();
 
         const structured: StructuredAnswer = parsed ?? {
-          answer: "No pude estructurar la respuesta. Intenta reformular tu pregunta.",
+          answer: plainTextAnswer || "No pude estructurar la respuesta. Intenta reformular tu pregunta.",
           grounded: false,
           missingInfo: "Respuesta no estructurada por el modelo",
           citations: [],
