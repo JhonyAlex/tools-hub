@@ -46,6 +46,14 @@ function StatusBadge({ status, errorMessage }: { status: AurisDocument["status"]
       </Badge>
     );
   }
+  if (status === "partial") {
+    return (
+      <Badge variant="secondary" className="flex items-center gap-1.5 px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-700 border-amber-500/20" title={errorMessage ?? ""}>
+        <AlertCircle className="size-2.5" />
+        Parcial
+      </Badge>
+    );
+  }
   return (
     <Badge variant="destructive" className="flex items-center gap-1.5 px-2 py-0 h-5 text-[10px] font-bold uppercase tracking-wider shadow-none" title={errorMessage ?? ""}>
       <AlertCircle className="size-2.5" />
@@ -211,15 +219,23 @@ export function DocumentList({
                 key={doc.id}
                 className={cn(
                   "group relative flex flex-col gap-2 rounded-xl border bg-card p-3 transition-all duration-200 shadow-sm",
-                  doc.status === "error" ? "border-destructive/30 bg-destructive/5" : "hover:border-primary/30 hover:shadow-md",
-                  doc.status === "ready" && "cursor-pointer"
+                  doc.status === "error"
+                    ? "border-destructive/30 bg-destructive/5"
+                    : doc.status === "partial"
+                      ? "border-amber-500/30 bg-amber-500/5"
+                      : "hover:border-primary/30 hover:shadow-md",
+                  (doc.status === "ready" || doc.status === "error" || doc.status === "partial") && "cursor-pointer"
                 )}
-                onClick={() => doc.status === "ready" && setPreviewDoc(doc)}
+                onClick={() => (doc.status === "ready" || doc.status === "error" || doc.status === "partial") && setPreviewDoc(doc)}
               >
                 <div className="flex items-start gap-3">
                   <div className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors",
-                    doc.status === "error" ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                    doc.status === "error"
+                      ? "bg-destructive/10 text-destructive"
+                      : doc.status === "partial"
+                        ? "bg-amber-500/10 text-amber-700"
+                        : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
                   )}>
                     {isAudioType(doc.mimeType) ? (
                       <FileAudio className="size-4.5" />
@@ -238,6 +254,11 @@ export function DocumentList({
                       </span>
                       <StatusBadge status={doc.status} errorMessage={doc.errorMessage} />
                     </div>
+                    {(doc.status === "error" || doc.status === "partial") && doc.errorMessage && (
+                      <p className="mt-1 text-[11px] leading-snug text-destructive line-clamp-2" title={doc.errorMessage}>
+                        {doc.errorMessage}
+                      </p>
+                    )}
                   </div>
                 </div>
 

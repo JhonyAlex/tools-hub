@@ -317,11 +317,20 @@ async function processDocument(params: {
     }
 
     if (!extractedText.trim()) {
+      console.warn("[AurisLM] processDocument: extracted text is empty", {
+        docId,
+        userId,
+        spaceId,
+        mimeType,
+        isAudio,
+      });
       await db.aurisLMDocument.update({
         where: { id: docId },
         data: {
           status: "error",
-          errorMessage: "No se pudo extraer texto del archivo",
+          errorMessage: isAudio
+            ? "No se pudo transcribir el audio con Deepgram"
+            : "No se pudo extraer texto del archivo",
         },
       });
       return;
@@ -330,6 +339,12 @@ async function processDocument(params: {
     // Create chunks
     const chunks = chunkText(extractedText, 600, 100);
     if (chunks.length === 0) {
+      console.warn("[AurisLM] processDocument: no chunks generated", {
+        docId,
+        userId,
+        spaceId,
+        mimeType,
+      });
       await db.aurisLMDocument.update({
         where: { id: docId },
         data: {
@@ -414,7 +429,12 @@ async function processDocument(params: {
         const vectorMessage = error instanceof Error
           ? error.message
           : "No se pudieron guardar embeddings";
-        console.warn("[AurisLM] Embedding persistence skipped");
+        console.warn("[AurisLM] Embedding persistence skipped", {
+          docId,
+          userId,
+          spaceId,
+          reason: vectorMessage,
+        });
 
         await db.aurisLMDocument.update({
           where: { id: docId },
@@ -486,5 +506,10 @@ async function transcribeWithDeepgram(
   const alt = data.results?.channels?.[0]?.alternatives?.[0];
   // paragraphs.transcript includes proper line breaks when paragraphs=true;
   // fall back to the flat transcript otherwise.
-  return alt?.paragraphs?.transcript ?? alt?.transcript ?? "";
+  const transcript = alt?.paragraphs?.transcript ?? alt?.transcript ?? "";
+  if (!transcript.trim()) {
+    throw new Error("Deepgram devolvió una transcripción vacía para este audio");
+  }
+
+  return transcript;
 }
