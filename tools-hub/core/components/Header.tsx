@@ -1,6 +1,6 @@
 "use client";
 
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
 import { Wrench, Sparkles, Github, Menu, ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggleSimple } from "./ThemeToggle";
@@ -25,6 +25,7 @@ export function Header() {
   const { toolInfo } = useToolInfo();
   const categories = getCategories();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isSignedIn, isLoaded } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -143,7 +144,7 @@ export function Header() {
           {/* Theme toggle */}
           <ThemeToggleSimple />
 
-          <SignedIn>
+          {isLoaded && isSignedIn && (
             <div className="flex items-center">
               <UserButton
                 appearance={userButtonAppearance}
@@ -151,13 +152,13 @@ export function Header() {
                 userProfileMode="modal"
               />
             </div>
-          </SignedIn>
+          )}
 
-          <SignedOut>
+          {isLoaded && !isSignedIn && (
             <div className="hidden sm:flex items-center gap-2">
               <SignInButton mode="modal">
                 <Button variant="outline" size="sm" className="h-9 rounded-lg">
-                  Iniciar sesion
+                  Iniciar sesión
                 </Button>
               </SignInButton>
               <SignUpButton mode="modal">
@@ -166,7 +167,7 @@ export function Header() {
                 </Button>
               </SignUpButton>
             </div>
-          </SignedOut>
+          )}
         </div>
       </div>
     </header>
