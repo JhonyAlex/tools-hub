@@ -22,6 +22,7 @@ export function useSpaces() {
       setError(null);
       const res = await fetch("/api/auris-lm/spaces", {
         headers: getAurisHeaders(),
+        cache: "no-store",
       });
       if (!res.ok) throw new Error("Error al cargar espacios");
       const data = await res.json();

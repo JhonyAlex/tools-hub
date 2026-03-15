@@ -30,6 +30,7 @@ export function useDocuments(spaceId: string | null) {
       if (!silent) setLoading(true);
       const res = await fetch(`/api/auris-lm/spaces/${spaceId}/documents`, {
         headers: getAurisHeaders(),
+        cache: "no-store",
       });
       if (!res.ok) return;
       const data = (await res.json()) as { documents: AurisDocument[] };
@@ -37,7 +38,9 @@ export function useDocuments(spaceId: string | null) {
       // Merge: prefer server data but keep optimistic entries not yet in server response
       setDocuments((prev) => {
         const serverIds = new Set(incoming.map((d) => d.id));
-        const optimistic = prev.filter((d) => !serverIds.has(d.id) && d.status === "processing");
+        const optimistic = prev.filter(
+          (d) => !serverIds.has(d.id) && (d.status === "queued" || d.status === "processing")
+        );
         return [...incoming, ...optimistic];
       });
     } finally {
@@ -45,20 +48,22 @@ export function useDocuments(spaceId: string | null) {
     }
   }, [spaceId]);
 
-  // Poll only while processing docs exist – effect only re-runs when that flag changes
-  const hasProcessingDocs = documents.some((d) => d.status === "processing");
+  // Poll while queued/processing docs exist so background processing is reflected without refresh.
+  const hasPendingDocs = documents.some(
+    (d) => d.status === "queued" || d.status === "processing"
+  );
   useEffect(() => {
-    if (!hasProcessingDocs) {
+    if (!hasPendingDocs) {
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
       return;
     }
     if (!pollRef.current) {
-      pollRef.current = setInterval(() => void fetchDocuments(true), 2500);
+      pollRef.current = setInterval(() => void fetchDocuments(true), 1500);
     }
     return () => {
       if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
     };
-  }, [hasProcessingDocs, fetchDocuments]);
+  }, [hasPendingDocs, fetchDocuments]);
 
   useEffect(() => {
     if (spaceId) {
@@ -97,6 +102,9 @@ export function useDocuments(spaceId: string | null) {
                 const merged = [...incoming.filter((d) => !seen.has(d.id)), ...prev];
                 return merged;
               });
+              setTimeout(() => {
+                void fetchDocuments(true);
+              }, 150);
               resolve(true);
             } else {
               resolve(false);
@@ -111,7 +119,7 @@ export function useDocuments(spaceId: string | null) {
         setUploadProgress(0);
       }
     },
-    [spaceId]
+    [fetchDocuments, spaceId]
   );
 
   const deleteDocument = useCallback(
@@ -123,6 +131,7 @@ export function useDocuments(spaceId: string | null) {
           {
             method: "DELETE",
             headers: getAurisHeaders(),
+            cache: "no-store",
           }
         );
         if (!res.ok) return false;

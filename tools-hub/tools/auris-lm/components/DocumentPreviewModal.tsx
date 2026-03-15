@@ -37,6 +37,7 @@ export function DocumentPreviewModal({
     setLoading(true);
     fetch(`/api/auris-lm/spaces/${spaceId}/documents/${doc.id}`, {
       headers: getAurisHeaders(),
+      cache: "no-store",
     })
       .then(async (res) => {
         if (!res.ok) throw new Error("No se pudo cargar el documento");
