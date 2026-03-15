@@ -363,15 +363,32 @@ async function processDocument(params: {
     ]);
 
     if (embeddings.length === chunkData.length) {
-      await Promise.all(
-        chunkData.map((chunk, index) =>
-          db.$executeRaw`
-            UPDATE "AurisLMChunk"
-            SET embedding = CAST(${toPgVectorLiteral(embeddings[index])} AS vector)
-            WHERE id = ${chunk.id}
-          `
-        )
-      );
+      try {
+        await Promise.all(
+          chunkData.map((chunk, index) =>
+            db.$executeRaw`
+              UPDATE "AurisLMChunk"
+              SET embedding = CAST(${toPgVectorLiteral(embeddings[index])} AS vector)
+              WHERE id = ${chunk.id}
+            `
+          )
+        );
+      } catch (error) {
+        const vectorMessage = error instanceof Error
+          ? error.message
+          : "No se pudieron guardar embeddings";
+        console.warn("[AurisLM] Embedding persistence skipped:", error);
+
+        await db.aurisLMDocument.update({
+          where: { id: docId },
+          data: {
+            status: "partial",
+            errorMessage: embeddingError
+              ? `${embeddingError} | ${vectorMessage}`
+              : vectorMessage,
+          },
+        });
+      }
     }
   } catch (err) {
     console.error("[AurisLM] processDocument error:", err);

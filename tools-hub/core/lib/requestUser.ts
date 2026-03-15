@@ -1,19 +1,14 @@
 import { NextRequest } from "next/server";
-
-const USER_HEADER = "x-user-id";
+import { auth } from "@clerk/nextjs/server";
 
 export function getRequestUserId(req: NextRequest): string | null {
-  const headerValue = req.headers.get(USER_HEADER)?.trim();
-  if (headerValue) return headerValue;
-
-  const queryValue = req.nextUrl.searchParams.get("uid")?.trim();
-  if (queryValue) return queryValue;
-
-  return null;
+  void req;
+  const { userId } = auth();
+  return userId ?? null;
 }
 
 export function unauthorizedResponse() {
-  return new Response(JSON.stringify({ error: "No autorizado: falta x-user-id" }), {
+  return new Response(JSON.stringify({ error: "No autorizado: sesión de usuario no válida" }), {
     status: 401,
     headers: { "Content-Type": "application/json" },
   });
