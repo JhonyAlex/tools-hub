@@ -27,6 +27,28 @@ const ACCEPTED_TYPES = new Set([
   "image/webp",
 ]);
 
+let pgVectorAvailableCache: boolean | null = null;
+
+async function isPgVectorAvailable(): Promise<boolean> {
+  if (pgVectorAvailableCache !== null) return pgVectorAvailableCache;
+
+  try {
+    const rows = await db.$queryRaw<Array<{ exists: boolean }>>(Prisma.sql`
+      SELECT EXISTS (
+        SELECT 1
+        FROM pg_type
+        WHERE typname = 'vector'
+      ) AS "exists"
+    `);
+
+    pgVectorAvailableCache = rows[0]?.exists === true;
+  } catch {
+    pgVectorAvailableCache = false;
+  }
+
+  return pgVectorAvailableCache;
+}
+
 // GET /api/auris-lm/spaces/[id]/documents
 export async function GET(
   req: NextRequest,
@@ -363,6 +385,21 @@ async function processDocument(params: {
     ]);
 
     if (embeddings.length === chunkData.length) {
+      const canPersistEmbeddings = await isPgVectorAvailable();
+
+      if (!canPersistEmbeddings) {
+        await db.aurisLMDocument.update({
+          where: { id: docId },
+          data: {
+            status: "partial",
+            errorMessage: embeddingError
+              ? `${embeddingError} | pgvector no disponible en la base de datos`
+              : "pgvector no disponible en la base de datos",
+          },
+        });
+        return;
+      }
+
       try {
         await Promise.all(
           chunkData.map((chunk, index) =>
@@ -377,7 +414,7 @@ async function processDocument(params: {
         const vectorMessage = error instanceof Error
           ? error.message
           : "No se pudieron guardar embeddings";
-        console.warn("[AurisLM] Embedding persistence skipped:", error);
+        console.warn("[AurisLM] Embedding persistence skipped");
 
         await db.aurisLMDocument.update({
           where: { id: docId },
