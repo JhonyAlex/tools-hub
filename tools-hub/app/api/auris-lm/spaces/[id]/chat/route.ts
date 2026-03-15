@@ -88,7 +88,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const userId = getRequestUserId(req);
+  const userId = await getRequestUserId(req);
   if (!userId) return unauthorizedResponse();
 
   const { id: spaceId } = await params;

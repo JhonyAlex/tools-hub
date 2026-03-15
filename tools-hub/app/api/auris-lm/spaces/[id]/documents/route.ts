@@ -33,7 +33,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = getRequestUserId(req);
+    const userId = await getRequestUserId(req);
     if (!userId) return unauthorizedResponse();
 
     const { id: spaceId } = await params;
@@ -76,7 +76,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = getRequestUserId(req);
+    const userId = await getRequestUserId(req);
     if (!userId) return unauthorizedResponse();
 
     const { id: spaceId } = await params;

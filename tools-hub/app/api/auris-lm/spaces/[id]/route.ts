@@ -12,7 +12,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = getRequestUserId(req);
+    const userId = await getRequestUserId(req);
     if (!userId) return unauthorizedResponse();
 
     const { id } = await params;
@@ -55,7 +55,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = getRequestUserId(req);
+    const userId = await getRequestUserId(req);
     if (!userId) return unauthorizedResponse();
 
     const { id } = await params;

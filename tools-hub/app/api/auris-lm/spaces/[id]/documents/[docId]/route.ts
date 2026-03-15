@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string; docId: string }> }
 ) {
   try {
-    const userId = getRequestUserId(req);
+    const userId = await getRequestUserId(req);
     if (!userId) return unauthorizedResponse();
 
     const { id: spaceId, docId } = await params;
@@ -46,7 +46,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; docId: string }> }
 ) {
   try {
-    const userId = getRequestUserId(req);
+    const userId = await getRequestUserId(req);
     if (!userId) return unauthorizedResponse();
 
     const { id: spaceId, docId } = await params;

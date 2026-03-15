@@ -5,7 +5,7 @@ import { getRequestUserId, unauthorizedResponse } from "@/core/lib/requestUser";
 // GET /api/auris-lm/spaces – list all spaces with document count
 export async function GET(req: NextRequest) {
   try {
-    const userId = getRequestUserId(req);
+    const userId = await getRequestUserId(req);
     if (!userId) return unauthorizedResponse();
 
     const spaces = await db.aurisLMSpace.findMany({
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 // POST /api/auris-lm/spaces – create a new space
 export async function POST(req: NextRequest) {
   try {
-    const userId = getRequestUserId(req);
+    const userId = await getRequestUserId(req);
     if (!userId) return unauthorizedResponse();
 
     const body = await req.json() as { name?: string; description?: string };

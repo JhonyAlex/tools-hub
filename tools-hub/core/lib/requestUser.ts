@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
-export function getRequestUserId(req: NextRequest): string | null {
+export async function getRequestUserId(req: NextRequest): Promise<string | null> {
   void req;
-  const { userId } = auth();
+  const { userId } = await auth();
   return userId ?? null;
 }
 
