@@ -7,6 +7,7 @@ import { DocumentList } from "./DocumentList";
 import { ChatPanel } from "./ChatPanel";
 import type { AurisSpace } from "../lib/useSpaces";
 import type { UploadResult } from "../lib/useDocuments";
+import type { DocumentActionResult } from "../lib/useDocuments";
 import { cn } from "@/lib/utils";
 
 interface SpaceViewProps {
@@ -107,7 +108,7 @@ export function SpaceView({ space }: SpaceViewProps) {
               onUpload={handleUpload}
               onDelete={(id) => void deleteDocument(id)}
               onRename={(id, name) => renameDocument(id, name)}
-              onSuggestName={(id) => suggestDocumentName(id)}
+              onSuggestName={(id): Promise<DocumentActionResult> => suggestDocumentName(id)}
               onDownload={downloadDocument}
             />
           </div>

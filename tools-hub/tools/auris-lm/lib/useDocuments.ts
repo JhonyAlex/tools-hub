@@ -24,6 +24,12 @@ export interface UploadResult {
   code?: string;
 }
 
+export interface DocumentActionResult {
+  ok: boolean;
+  error?: string;
+  code?: string;
+}
+
 export function useDocuments(spaceId: string | null) {
   const [documents, setDocuments] = useState<AurisDocument[]>([]);
   const [loading, setLoading] = useState(false);
@@ -216,8 +222,10 @@ export function useDocuments(spaceId: string | null) {
   );
 
   const suggestDocumentName = useCallback(
-    async (docId: string): Promise<boolean> => {
-      if (!spaceId) return false;
+    async (docId: string): Promise<DocumentActionResult> => {
+      if (!spaceId) {
+        return { ok: false, error: "Espacio no seleccionado" };
+      }
 
       try {
         const res = await fetch(
@@ -229,18 +237,33 @@ export function useDocuments(spaceId: string | null) {
           }
         );
 
-        if (!res.ok) return false;
+        if (!res.ok) {
+          let parsed: { error?: string; code?: string } | null = null;
+          try {
+            parsed = (await res.json()) as { error?: string; code?: string };
+          } catch {
+            parsed = null;
+          }
+
+          return {
+            ok: false,
+            code: parsed?.code,
+            error: parsed?.error ?? "No se pudo sugerir el nombre de la fuente.",
+          };
+        }
 
         const data = (await res.json()) as { document?: AurisDocument };
         const updated = data.document;
-        if (!updated) return false;
+        if (!updated) {
+          return { ok: false, error: "El servidor no devolvió el documento actualizado." };
+        }
 
         setDocuments((prev) =>
           prev.map((doc) => (doc.id === docId ? { ...doc, originalName: updated.originalName } : doc))
         );
-        return true;
+        return { ok: true };
       } catch {
-        return false;
+        return { ok: false, error: "Error de red al sugerir el nombre." };
       }
     },
     [spaceId]

@@ -16,6 +16,11 @@ interface OpenRouterResponse {
 
 const MODEL = "openai/gpt-oss-120b:free";
 
+const STOPWORDS = new Set([
+  "de", "la", "el", "los", "las", "un", "una", "unos", "unas", "y", "o", "en",
+  "a", "con", "por", "para", "del", "al", "que", "se", "su", "sus", "es", "son",
+]);
+
 function normalizeSuggestedName(raw: string, fallback: string): string {
   const cleaned = raw
     .replace(/[`"'_*#]/g, " ")
@@ -30,6 +35,27 @@ function normalizeSuggestedName(raw: string, fallback: string): string {
     .trim();
 
   return short || fallback;
+}
+
+function generateLocalSuggestion(extractedText: string, fallback: string): string {
+  const words = extractedText
+    .toLowerCase()
+    .replace(/[^a-z0-9\s\u00c0-\u017f]/gi, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 4 && !STOPWORDS.has(w));
+
+  const counts = new Map<string, number>();
+  for (const word of words) {
+    counts.set(word, (counts.get(word) ?? 0) + 1);
+  }
+
+  const top = Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([word]) => word.charAt(0).toUpperCase() + word.slice(1));
+
+  const candidate = top.join(" ").trim();
+  return normalizeSuggestedName(candidate, fallback);
 }
 
 export async function POST(
@@ -69,51 +95,62 @@ export async function POST(
       );
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "OPENROUTER_API_KEY no configurada" }, { status: 500 });
-    }
-
     const excerpt = document.extractedText.replace(/\s+/g, " ").trim().slice(0, 2400);
+    let suggestedName = document.originalName;
+    let usedFallback = false;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0.2,
-        max_tokens: 24,
-        messages: [
-          {
-            role: "system",
-            content:
-              "Genera un nombre corto y preciso para una fuente documental. Responde solo con una frase muy corta de 2 a 6 palabras, sin comillas, sin punto final, sin explicaciones.",
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (apiKey) {
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
           },
-          {
-            role: "user",
-            content: [
-              `Nombre actual: ${document.originalName}`,
-              `Tipo MIME: ${document.mimeType}`,
-              "Contenido de la fuente:",
-              excerpt,
-            ].join("\n\n"),
-          },
-        ],
-      }),
-    });
+          body: JSON.stringify({
+            model: MODEL,
+            temperature: 0.2,
+            max_tokens: 24,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "Genera un nombre corto y preciso para una fuente documental. Responde solo con una frase muy corta de 2 a 6 palabras, sin comillas, sin punto final, sin explicaciones.",
+              },
+              {
+                role: "user",
+                content: [
+                  `Nombre actual: ${document.originalName}`,
+                  `Tipo MIME: ${document.mimeType}`,
+                  "Contenido de la fuente:",
+                  excerpt,
+                ].join("\n\n"),
+              },
+            ],
+          }),
+        });
 
-    if (!response.ok) {
-      const body = await response.text();
-      console.error("[AurisLM] Suggest name OpenRouter error:", response.status, body);
-      return NextResponse.json({ error: "No se pudo generar el nombre sugerido" }, { status: 502 });
+        if (!response.ok) {
+          const body = await response.text();
+          console.error("[AurisLM] Suggest name OpenRouter error:", response.status, body);
+          usedFallback = true;
+        } else {
+          const payload = (await response.json()) as OpenRouterResponse;
+          const rawSuggestion = payload.choices?.[0]?.message?.content?.trim() ?? "";
+          suggestedName = normalizeSuggestedName(rawSuggestion, document.originalName);
+        }
+      } catch (providerError) {
+        console.error("[AurisLM] Suggest name provider call failed:", providerError);
+        usedFallback = true;
+      }
+    } else {
+      usedFallback = true;
     }
 
-    const payload = (await response.json()) as OpenRouterResponse;
-    const rawSuggestion = payload.choices?.[0]?.message?.content?.trim() ?? "";
-    const suggestedName = normalizeSuggestedName(rawSuggestion, document.originalName);
+    if (usedFallback) {
+      suggestedName = generateLocalSuggestion(excerpt, document.originalName);
+    }
 
     const updated = await db.aurisLMDocument.update({
       where: { id: document.id },
@@ -131,7 +168,11 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({ document: updated, suggestedName });
+    return NextResponse.json({
+      document: updated,
+      suggestedName,
+      source: usedFallback ? "fallback" : "openrouter",
+    });
   } catch (error) {
     console.error("[AurisLM] Suggest name:", error);
     return NextResponse.json({ error: "Error al sugerir el nombre de la fuente" }, { status: 500 });

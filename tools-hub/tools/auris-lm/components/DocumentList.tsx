@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import type { AurisDocument, UploadResult } from "../lib/useDocuments";
+import type { AurisDocument, UploadResult, DocumentActionResult } from "../lib/useDocuments";
 import { UploadDropzone } from "./UploadDropzone";
 import { DocumentPreviewModal } from "./DocumentPreviewModal";
 
@@ -18,7 +18,7 @@ interface DocumentListProps {
   onUpload: (files: File[]) => Promise<UploadResult>;
   onDelete: (id: string) => void;
   onRename: (id: string, name: string) => Promise<boolean>;
-  onSuggestName: (id: string) => Promise<boolean>;
+  onSuggestName: (id: string) => Promise<DocumentActionResult>;
   onDownload: (id: string, name: string) => void;
 }
 
@@ -135,11 +135,11 @@ export function DocumentList({
   const handleSuggestName = async (doc: AurisDocument) => {
     setUploadError(null);
     setSuggestingDocId(doc.id);
-    const ok = await onSuggestName(doc.id);
+    const result = await onSuggestName(doc.id);
     setSuggestingDocId(null);
 
-    if (!ok) {
-      setUploadError("No se pudo generar un nombre según el contenido.");
+    if (!result.ok) {
+      setUploadError(result.error ?? "No se pudo generar un nombre según el contenido.");
     }
   };
 
