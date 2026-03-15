@@ -3,7 +3,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import {
   getAurisHeaders,
   getAurisIdentityQueryParam,
-  getAurisUserId,
 } from "@/tools/auris-lm/lib/clientIdentity";
 
 export interface AurisDocument {
@@ -105,7 +104,6 @@ export function useDocuments(spaceId: string | null) {
           });
           xhr.addEventListener("error", () => resolve(false));
           xhr.open("POST", `/api/auris-lm/spaces/${spaceId}/documents`);
-          xhr.setRequestHeader("x-user-id", getAurisUserId());
           xhr.send(formData);
         });
       } finally {
@@ -141,7 +139,10 @@ export function useDocuments(spaceId: string | null) {
     (docId: string, originalName: string) => {
       if (!spaceId) return;
       const a = document.createElement("a");
-      a.href = `/api/auris-lm/spaces/${spaceId}/documents/${docId}/download?${getAurisIdentityQueryParam()}`;
+      const identityQuery = getAurisIdentityQueryParam();
+      a.href = identityQuery
+        ? `/api/auris-lm/spaces/${spaceId}/documents/${docId}/download?${identityQuery}`
+        : `/api/auris-lm/spaces/${spaceId}/documents/${docId}/download`;
       a.download = originalName;
       a.click();
     },

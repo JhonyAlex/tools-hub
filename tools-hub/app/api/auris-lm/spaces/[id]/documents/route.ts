@@ -403,14 +403,10 @@ async function processDocument(params: {
       const canPersistEmbeddings = await isPgVectorAvailable();
 
       if (!canPersistEmbeddings) {
-        await db.aurisLMDocument.update({
-          where: { id: docId },
-          data: {
-            status: "partial",
-            errorMessage: embeddingError
-              ? `${embeddingError} | pgvector no disponible en la base de datos`
-              : "pgvector no disponible en la base de datos",
-          },
+        console.warn("[AurisLM] pgvector unavailable: skipping embedding persistence", {
+          docId,
+          userId,
+          spaceId,
         });
         return;
       }
@@ -434,16 +430,6 @@ async function processDocument(params: {
           userId,
           spaceId,
           reason: vectorMessage,
-        });
-
-        await db.aurisLMDocument.update({
-          where: { id: docId },
-          data: {
-            status: "partial",
-            errorMessage: embeddingError
-              ? `${embeddingError} | ${vectorMessage}`
-              : vectorMessage,
-          },
         });
       }
     }

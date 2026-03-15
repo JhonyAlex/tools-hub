@@ -111,7 +111,12 @@ export function DocumentPreviewModal({
           {/* PDF inline viewer */}
           {!loading && !error && doc.mimeType === "application/pdf" && (
             <iframe
-              src={`/api/auris-lm/spaces/${spaceId}/documents/${doc.id}/download?inline=true&${getAurisIdentityQueryParam()}`}
+              src={(() => {
+                const identityQuery = getAurisIdentityQueryParam();
+                return identityQuery
+                  ? `/api/auris-lm/spaces/${spaceId}/documents/${doc.id}/download?inline=true&${identityQuery}`
+                  : `/api/auris-lm/spaces/${spaceId}/documents/${doc.id}/download?inline=true`;
+              })()}
               title={doc.originalName}
               className="w-full h-full min-h-[60vh] border-0 rounded-lg"
             />
