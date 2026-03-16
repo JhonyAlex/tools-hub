@@ -22,6 +22,12 @@ export function CopyableChart({ children, label = "Copiar imagen" }: CopyableCha
     const [copying, setCopying] = useState(false);
     const [copied, setCopied] = useState(false);
 
+    const canvasToBlob = useCallback((canvas: HTMLCanvasElement) => {
+        return new Promise<Blob | null>((resolve) => {
+            canvas.toBlob((blob) => resolve(blob), "image/png");
+        });
+    }, []);
+
     const handleCopy = useCallback(async () => {
         if (!wrapperRef.current || copying) return;
         setCopying(true);
@@ -41,26 +47,45 @@ export function CopyableChart({ children, label = "Copiar imagen" }: CopyableCha
                 },
             });
 
-            canvas.toBlob(async (blob) => {
-                if (!blob) return;
-                try {
-                    await navigator.clipboard.write([
-                        new ClipboardItem({ "image/png": blob }),
-                    ]);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                } catch {
-                    // Fallback: abrir imagen en nueva pestaña si el clipboard no está disponible
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, "_blank");
-                } finally {
-                    setCopying(false);
+            const blob = await canvasToBlob(canvas);
+            if (!blob) {
+                throw new Error("No se pudo generar la imagen del gráfico.");
+            }
+
+            try {
+                const canWriteImage =
+                    typeof window !== "undefined" &&
+                    window.isSecureContext &&
+                    typeof navigator.clipboard?.write === "function" &&
+                    typeof ClipboardItem !== "undefined";
+
+                if (!canWriteImage) {
+                    throw new Error("Clipboard API de imagen no disponible");
                 }
-            }, "image/png");
-        } catch {
+
+                await navigator.clipboard.write([
+                    new ClipboardItem({ "image/png": blob }),
+                ]);
+            } catch {
+                // Fallback confiable si copiar imagen no está soportado por el navegador.
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = "grafico-mantenimiento.png";
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+            }
+
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (error) {
+            console.error("[CopyableChart] Error al copiar imagen:", error);
+        } finally {
             setCopying(false);
         }
-    }, [copying]);
+    }, [canvasToBlob, copying]);
 
     return (
         <div
