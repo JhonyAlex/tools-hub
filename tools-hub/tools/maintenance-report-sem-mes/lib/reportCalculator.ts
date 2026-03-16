@@ -45,7 +45,13 @@ export function calculateReport(
   // 3. Enrich with transformed worker names and parsed hours
   const enriched = filtered.map((r) => ({
     ...r,
-    workerName: transformWorkerName(r.trabajador, r.observacionesOT),
+    workerName: transformWorkerName(
+      r.trabajador,
+      r.observaciones,
+      r.observacionesOT,
+      r.observacionesPM,
+      r.observacionesTareas
+    ),
     hours: parseTiempoTotal(r.tiempoTotal),
   }));
 

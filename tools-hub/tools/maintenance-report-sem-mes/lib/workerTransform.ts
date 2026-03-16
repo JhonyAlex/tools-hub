@@ -4,18 +4,24 @@
 
 /**
  * Transform worker names:
- * - "Jose Gallego" + "Paco" in observacionesOT -> "Francisco Moral"
- * - All other cases remain unchanged
+ * - If any observation field contains "paco" (any case/position/punctuation), assign "Francisco Moral"
+ * - Otherwise keep original worker name
  */
 export function transformWorkerName(
   trabajador: string,
-  observacionesOT: string
+  ...observationFields: Array<string | undefined>
 ): string {
   const name = trabajador.trim();
-  if (name.toLowerCase() === "jose gallego") {
-    if (/paco/i.test(observacionesOT)) {
-      return "Francisco Moral";
-    }
+
+  const hasPacoAlias = observationFields.some((value) => {
+    if (!value) return false;
+    // Match "paco" as a standalone token even with punctuation around it.
+    return /(^|[^a-z0-9])paco([^a-z0-9]|$)/i.test(value);
+  });
+
+  if (hasPacoAlias) {
+    return "Francisco Moral";
   }
+
   return name;
 }
