@@ -38,6 +38,50 @@ type ResolveResult = {
   };
 };
 
+type PurposeSetup = {
+  caseId: string;
+  title: string;
+  description: string;
+  whatItDoes: string;
+  defaultPrompt: string;
+};
+
+type PurposeDraft = {
+  providerId: string;
+  modelId: string;
+  prompt: string;
+};
+
+const PURPOSE_SETUPS: PurposeSetup[] = [
+  {
+    caseId: "orchestrator.default",
+    title: "Orquestador de Informes",
+    description: "Genera informes completos a partir de archivos y texto.",
+    whatItDoes:
+      "Lee fuentes, estructura hallazgos, redacta resumen ejecutivo y prepara salida final.",
+    defaultPrompt:
+      "Sos un analista ejecutivo. Escribi en espanol claro, con estructura y recomendaciones accionables.",
+  },
+  {
+    caseId: "images.generate",
+    title: "Generador de Imagenes",
+    description: "Genera prompts e instrucciones para piezas visuales.",
+    whatItDoes:
+      "Traduce una idea de negocio en un brief visual claro y listo para generar imagenes.",
+    defaultPrompt:
+      "Sos un director de arte. Converti pedidos ambiguos en prompts visuales precisos, con estilo, encuadre y restricciones.",
+  },
+  {
+    caseId: "assistant.general",
+    title: "Asistente General",
+    description: "Responde preguntas y apoya tareas generales.",
+    whatItDoes:
+      "Da respuestas directas, didacticas y orientadas a resolver rapido sin perder calidad.",
+    defaultPrompt:
+      "Sos un asistente practico. Responde con pasos claros, ejemplos concretos y lenguaje simple.",
+  },
+];
+
 const EMPTY_PROVIDER: ProviderEntry = {
   id: "",
   nombre: "",
@@ -83,6 +127,7 @@ export function OrchestratorSettingsPanel() {
 
   const [ioJson, setIoJson] = useState("");
   const [resolveOutput, setResolveOutput] = useState<ResolveResult | null>(null);
+  const [purposeDrafts, setPurposeDrafts] = useState<Record<string, PurposeDraft>>({});
 
   const models = useMemo(() => data?.config.models ?? [], [data]);
   const providers = useMemo(() => data?.config.providers ?? [], [data]);
@@ -96,6 +141,27 @@ export function OrchestratorSettingsPanel() {
       setNewModel((prev) => ({ ...prev, providerId: providers[0].id }));
     }
   }, [providers, newModel.providerId]);
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    const nextDrafts: Record<string, PurposeDraft> = {};
+    for (const purpose of PURPOSE_SETUPS) {
+      const mapping = data.config.caseMappings[purpose.caseId];
+      const mappedModelId = mapping?.mode === "override" ? mapping.modelId || "" : data.config.defaultModelId;
+      const model = data.config.models.find((item) => item.id === mappedModelId);
+
+      nextDrafts[purpose.caseId] = {
+        providerId: model?.providerId || providers[0]?.id || "openrouter",
+        modelId: model?.id || "",
+        prompt: mapping?.promptOverride || model?.prompt || purpose.defaultPrompt,
+      };
+    }
+
+    setPurposeDrafts(nextDrafts);
+  }, [data, providers]);
 
   async function refresh() {
     setLoading(true);
@@ -139,6 +205,44 @@ export function OrchestratorSettingsPanel() {
       }
 
       setNewProvider(EMPTY_PROVIDER);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error inesperado");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function ensureOpenRouterProvider() {
+    const exists = providers.some((provider) => provider.id === "openrouter");
+    if (exists) {
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/tools/ai-report-orchestrator/config/providers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "openrouter",
+          nombre: "OpenRouter",
+          endpoint: "https://openrouter.ai/api/v1",
+          credenciales: {
+            tipo: "apiKey",
+            secretRef: "secrets://ai/openrouter/api_key",
+          },
+          prioridad: 1,
+          activo: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        throw new Error(payload.error || "No se pudo crear OpenRouter");
+      }
+
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error inesperado");
@@ -447,6 +551,120 @@ export function OrchestratorSettingsPanel() {
     }
   }
 
+  function setPurposeDraft(caseId: string, patch: Partial<PurposeDraft>) {
+    setPurposeDrafts((prev) => ({
+      ...prev,
+      [caseId]: {
+        providerId: prev[caseId]?.providerId || providers[0]?.id || "openrouter",
+        modelId: prev[caseId]?.modelId || "",
+        prompt: prev[caseId]?.prompt || "",
+        ...patch,
+      },
+    }));
+  }
+
+  async function savePurpose(caseId: string) {
+    const purpose = PURPOSE_SETUPS.find((item) => item.caseId === caseId);
+    const draft = purposeDrafts[caseId];
+
+    if (!purpose || !draft) {
+      setError("No se encontro la finalidad a guardar");
+      return;
+    }
+
+    const modelId = draft.modelId.trim();
+    if (!modelId) {
+      setError("El modelo es obligatorio. Ejemplo: deepseek/deepseek-v3.2");
+      return;
+    }
+
+    if (!draft.providerId) {
+      setError("Selecciona un proveedor");
+      return;
+    }
+
+    if (!draft.prompt.trim()) {
+      setError("El prompt no puede estar vacio");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const existingModel = models.find((item) => item.id === modelId);
+
+      if (!existingModel) {
+        const createResponse = await fetch("/api/tools/ai-report-orchestrator/config/models", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: modelId,
+            nombre: modelId,
+            providerId: draft.providerId,
+            providerNombre: providers.find((item) => item.id === draft.providerId)?.nombre || draft.providerId,
+            prompt: draft.prompt,
+            activo: true,
+            version: 1,
+            metadatos: { source: "simple-setup", purpose: caseId },
+          }),
+        });
+
+        if (!createResponse.ok) {
+          const payload = (await createResponse.json()) as { error?: string };
+          throw new Error(payload.error || "No se pudo crear el modelo");
+        }
+      } else if (existingModel.providerId !== draft.providerId) {
+        const patchResponse = await fetch(`/api/tools/ai-report-orchestrator/config/models/${modelId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ providerId: draft.providerId }),
+        });
+
+        if (!patchResponse.ok) {
+          const payload = (await patchResponse.json()) as { error?: string };
+          throw new Error(payload.error || "No se pudo actualizar el proveedor del modelo");
+        }
+      }
+
+      const promptResponse = await fetch(`/api/tools/ai-report-orchestrator/config/models/${modelId}/prompt`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: draft.prompt,
+          changeNote: `simple setup: ${purpose.title}`,
+        }),
+      });
+
+      if (!promptResponse.ok) {
+        const payload = (await promptResponse.json()) as { error?: string };
+        throw new Error(payload.error || "No se pudo actualizar el prompt del modelo");
+      }
+
+      const mappingResponse = await fetch(`/api/tools/ai-report-orchestrator/config/cases/${caseId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "override",
+          modelId,
+          promptOverride: draft.prompt,
+          fallbackModelIds: [],
+        }),
+      });
+
+      if (!mappingResponse.ok) {
+        const payload = (await mappingResponse.json()) as { error?: string };
+        throw new Error(payload.error || "No se pudo guardar la configuracion de finalidad");
+      }
+
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error inesperado");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (loading && !data) {
     return (
       <Card>
@@ -486,6 +704,99 @@ export function OrchestratorSettingsPanel() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Configuracion Basica (Desde Cero)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          <p className="text-muted-foreground">
+            Paso 1: asegura OpenRouter. Paso 2: por cada finalidad, elegi proveedor, modelo (ej: deepseek/deepseek-v3.2) y edita su prompt.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={() => void ensureOpenRouterProvider()} disabled={saving}>
+              Crear OpenRouter automaticamente
+            </Button>
+            <Badge variant="outline">
+              Proveedor recomendado: {providers.some((item) => item.id === "openrouter") ? "OpenRouter activo" : "OpenRouter pendiente"}
+            </Badge>
+          </div>
+
+          <div className="grid gap-4">
+            {PURPOSE_SETUPS.map((purpose) => {
+              const draft = purposeDrafts[purpose.caseId] || {
+                providerId: providers[0]?.id || "openrouter",
+                modelId: "",
+                prompt: purpose.defaultPrompt,
+              };
+
+              return (
+                <div key={purpose.caseId} className="rounded-lg border bg-background p-4 space-y-3">
+                  <div>
+                    <p className="font-medium">{purpose.title}</p>
+                    <p className="text-xs text-muted-foreground">{purpose.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      <span className="font-medium text-foreground">Que hace este agente:</span> {purpose.whatItDoes}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-1">caseId: {purpose.caseId}</p>
+                  </div>
+
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Proveedor</label>
+                      <select
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={draft.providerId}
+                        onChange={(event) =>
+                          setPurposeDraft(purpose.caseId, { providerId: event.target.value })
+                        }
+                      >
+                        {providers.map((provider) => (
+                          <option key={provider.id} value={provider.id}>
+                            {provider.nombre} ({provider.id})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Modelo</label>
+                      <Input
+                        value={draft.modelId}
+                        onChange={(event) =>
+                          setPurposeDraft(purpose.caseId, { modelId: event.target.value })
+                        }
+                        placeholder="deepseek/deepseek-v3.2"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Prompt del agente</label>
+                    <textarea
+                      className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={draft.prompt}
+                      onChange={(event) =>
+                        setPurposeDraft(purpose.caseId, { prompt: event.target.value })
+                      }
+                      placeholder={purpose.defaultPrompt}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button onClick={() => void savePurpose(purpose.caseId)} disabled={saving}>
+                      Guardar {purpose.title}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <details className="rounded-lg border bg-card p-4">
+        <summary className="cursor-pointer text-sm font-medium">Opciones avanzadas (opcional)</summary>
+        <div className="mt-4 space-y-4">
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -662,6 +973,9 @@ export function OrchestratorSettingsPanel() {
           />
         </CardContent>
       </Card>
+
+        </div>
+      </details>
 
       {resolveOutput ? (
         <Card>
