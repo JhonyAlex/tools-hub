@@ -209,7 +209,6 @@ async function ensureConfigDir() {
   const configured = process.env.AI_REPORT_ORCHESTRATOR_CONFIG_DIR?.trim();
   const candidates = [
     configured,
-    path.join(process.cwd(), ".data", "ai-report-orchestrator"),
     path.join(os.tmpdir(), "tools-hub", "ai-report-orchestrator"),
   ].filter((value): value is string => Boolean(value));
 
@@ -240,7 +239,6 @@ async function readLocalConfig(): Promise<OrchestratorConfig | null> {
   const candidateDirs = [
     configured,
     resolvedConfigDir,
-    path.join(process.cwd(), ".data", "ai-report-orchestrator"),
     path.join(os.tmpdir(), "tools-hub", "ai-report-orchestrator"),
   ].filter((value, index, array): value is string => Boolean(value) && array.indexOf(value) === index);
 
