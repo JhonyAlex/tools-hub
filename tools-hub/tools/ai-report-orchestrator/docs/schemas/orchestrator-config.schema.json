@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools-hub.local/schemas/ai-report-orchestrator/orchestrator-config.schema.json",
+  "title": "OrchestratorConfig",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "updatedAt",
+    "defaultModelId",
+    "providers",
+    "models",
+    "promptVersions",
+    "caseMappings",
+    "auditTrail"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "defaultModelId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "providers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "provider-entry.schema.json"
+      }
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "model-entry.schema.json"
+      }
+    },
+    "promptVersions": {
+      "type": "object",
+      "description": "Historial global opcional por modelo",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "prompt", "updatedAt", "updatedBy"],
+          "properties": {
+            "version": { "type": "integer", "minimum": 1 },
+            "prompt": { "type": "string", "minLength": 1, "maxLength": 64000 },
+            "updatedAt": { "type": "string", "format": "date-time" },
+            "updatedBy": { "type": "string", "minLength": 1, "maxLength": 120 },
+            "changeNote": { "type": "string", "maxLength": 500 }
+          }
+        }
+      }
+    },
+    "caseMappings": {
+      "type": "object",
+      "description": "Map de caseId a configuracion de modelo/prompt",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["mode"],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["inherit", "override"]
+          },
+          "modelId": {
+            "type": "string"
+          },
+          "promptOverride": {
+            "type": "string",
+            "maxLength": 64000
+          },
+          "fallbackModelIds": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "maxItems": 10
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "mode": { "const": "override" } }
+            },
+            "then": {
+              "required": ["modelId"]
+            }
+          }
+        ]
+      }
+    },
+    "auditTrail": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "at",
+          "actor",
+          "action",
+          "entityType",
+          "entityId",
+          "changes"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "at": { "type": "string", "format": "date-time" },
+          "actor": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "action": {
+            "type": "string",
+            "enum": ["create", "update", "delete", "assign", "unassign", "import", "rollback"]
+          },
+          "entityType": {
+            "type": "string",
+            "enum": ["provider", "model", "prompt", "caseMapping", "config"]
+          },
+          "entityId": { "type": "string", "minLength": 1 },
+          "changes": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

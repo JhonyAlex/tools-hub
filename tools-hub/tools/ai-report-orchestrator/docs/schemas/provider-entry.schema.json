@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools-hub.local/schemas/ai-report-orchestrator/provider-entry.schema.json",
+  "title": "ProviderEntry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "nombre", "endpoint", "credenciales"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9_-]{3,64}$"
+    },
+    "nombre": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "endpoint": {
+      "type": "string",
+      "format": "uri",
+      "minLength": 1
+    },
+    "credenciales": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tipo", "secretRef"],
+      "properties": {
+        "tipo": {
+          "type": "string",
+          "enum": ["apiKey", "oauth2", "token"]
+        },
+        "secretRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "maskedPreview": {
+          "type": "string",
+          "maxLength": 64
+        }
+      }
+    },
+    "prioridad": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 999,
+      "default": 100
+    },
+    "activo": {
+      "type": "boolean",
+      "default": true
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

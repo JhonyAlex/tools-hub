@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tools-hub.local/schemas/ai-report-orchestrator/config-export.schema.json",
+  "title": "OrchestratorConfigExport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["exportedAt", "redacted", "config"],
+  "properties": {
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "exportedBy": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "redacted": {
+      "type": "boolean"
+    },
+    "checksum": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "config": {
+      "$ref": "orchestrator-config.schema.json"
+    }
+  }
+}

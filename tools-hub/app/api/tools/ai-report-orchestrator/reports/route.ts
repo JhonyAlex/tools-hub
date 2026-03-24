@@ -1,6 +1,84 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestUserId, unauthorizedResponse } from "@/core/lib/requestUser";
 import { createReport, listReports } from "./_store";
+import { executeWithFallback } from "../config/_service";
+
+const MAX_TEXT_SOURCES = 10;
+const MAX_TEXT_SOURCE_CHARS = 10_000;
+const MAX_TOTAL_SOURCES = 20;
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object";
+}
+
+function validateSources(value: unknown) {
+  if (!Array.isArray(value)) {
+    return "sources must be an array";
+  }
+
+  if (value.length === 0) {
+    return "at least one source is required";
+  }
+
+  if (value.length > MAX_TOTAL_SOURCES) {
+    return `sources cannot exceed ${MAX_TOTAL_SOURCES}`;
+  }
+
+  let textCount = 0;
+  for (const source of value) {
+    if (!isObject(source) || typeof source.type !== "string") {
+      return "each source must include a valid type";
+    }
+
+    if (source.type === "file") {
+      if (!isObject(source.file)) {
+        return "file source must include file metadata";
+      }
+
+      const { name, size, mimeType } = source.file;
+      if (typeof name !== "string" || !name.trim()) {
+        return "file name is required";
+      }
+
+      if (typeof size !== "number" || !Number.isFinite(size) || size < 0) {
+        return "file size must be a valid number";
+      }
+
+      if (typeof mimeType !== "string" || !mimeType.trim()) {
+        return "file mimeType is required";
+      }
+      continue;
+    }
+
+    if (source.type === "text") {
+      textCount += 1;
+      if (textCount > MAX_TEXT_SOURCES) {
+        return `text sources cannot exceed ${MAX_TEXT_SOURCES}`;
+      }
+
+      if (typeof source.title !== "string" || !source.title.trim()) {
+        return "text source title is required";
+      }
+
+      if (source.format !== "md") {
+        return 'text source format must be "md"';
+      }
+
+      if (typeof source.content !== "string" || !source.content.trim()) {
+        return "text source content is required";
+      }
+
+      if (source.content.length > MAX_TEXT_SOURCE_CHARS) {
+        return `text source content cannot exceed ${MAX_TEXT_SOURCE_CHARS} chars`;
+      }
+      continue;
+    }
+
+    return "unsupported source type";
+  }
+
+  return null;
+}
 
 function validatePayload(body: unknown) {
   if (!body || typeof body !== "object") {
@@ -16,8 +94,9 @@ function validatePayload(body: unknown) {
     return "config is required";
   }
 
-  if (!Array.isArray(data.files)) {
-    return "files must be an array";
+  const sourcesError = validateSources(data.sources);
+  if (sourcesError) {
+    return sourcesError;
   }
 
   return null;
@@ -58,14 +137,64 @@ export async function POST(req: NextRequest) {
       detailLevel: "low" | "medium" | "high";
       language: "es" | "en";
       exportFormat: "docx" | "pdf" | "md";
+      caseId?: string;
     };
-    files: Array<{ name: string; size: number; mimeType: string }>;
+    sources: Array<
+      | {
+          type: "file";
+          file: { name: string; size: number; mimeType: string };
+        }
+      | {
+          type: "text";
+          title: string;
+          content: string;
+          format: "md";
+        }
+    >;
   };
+
+  let orchestration:
+    | {
+        caseId: string;
+        usedModelId: string;
+        usedProviderId: string;
+        usedPromptVersion: number;
+        traceId: string;
+        attempts: Array<{ modelId: string; providerId?: string; ok: boolean; error?: string }>;
+      }
+    | undefined;
+
+  try {
+    const execution = await executeWithFallback(userId, data.config.caseId || "orchestrator.default", {
+      sourceCount: data.sources.length,
+      title: data.title.trim(),
+    });
+
+    orchestration = {
+      caseId: data.config.caseId || "orchestrator.default",
+      usedModelId: execution.usedModelId,
+      usedProviderId: execution.usedProviderId,
+      usedPromptVersion: execution.usedPromptVersion,
+      traceId: execution.traceId,
+      attempts: execution.attempts,
+    };
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? `No se pudo resolver ningun modelo para el caso configurado: ${error.message}`
+            : "No se pudo resolver ningun modelo para el caso configurado",
+      },
+      { status: 502 }
+    );
+  }
 
   const report = createReport(userId, {
     title: data.title.trim(),
     config: data.config,
-    files: data.files,
+    sources: data.sources,
+    orchestration,
   });
 
   return NextResponse.json({ report }, { status: 201 });

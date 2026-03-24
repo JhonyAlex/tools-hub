@@ -14,6 +14,16 @@ interface ReportConfig {
   detailLevel: "low" | "medium" | "high";
   language: "es" | "en";
   exportFormat: "docx" | "pdf" | "md";
+  caseId?: string;
+}
+
+interface ReportOrchestrationMeta {
+  caseId: string;
+  usedModelId: string;
+  usedProviderId: string;
+  usedPromptVersion: number;
+  traceId: string;
+  attempts: Array<{ modelId: string; providerId?: string; ok: boolean; error?: string }>;
 }
 
 interface ReportFile {
@@ -21,6 +31,20 @@ interface ReportFile {
   size: number;
   mimeType: string;
 }
+
+interface ReportFileSource {
+  type: "file";
+  file: ReportFile;
+}
+
+interface ReportTextSource {
+  type: "text";
+  title: string;
+  content: string;
+  format: "md";
+}
+
+type ReportSource = ReportFileSource | ReportTextSource;
 
 interface InternalReport {
   id: string;
@@ -33,16 +57,18 @@ interface InternalReport {
   updatedAt: Date;
   startedAt: Date;
   config: ReportConfig;
-  files: ReportFile[];
+  sources: ReportSource[];
   content: string;
   changeLog: string[];
+  orchestration?: ReportOrchestrationMeta;
   errorMessage?: string;
 }
 
 interface CreateReportInput {
   title: string;
   config: ReportConfig;
-  files: ReportFile[];
+  sources: ReportSource[];
+  orchestration?: ReportOrchestrationMeta;
 }
 
 const reportsStore = new Map<string, InternalReport>();
@@ -72,16 +98,31 @@ function toJSON(report: InternalReport) {
     createdAt: report.createdAt.toISOString(),
     updatedAt: report.updatedAt.toISOString(),
     config: report.config,
-    files: report.files,
+    sources: report.sources,
     content: report.content,
     changeLog: report.changeLog,
+    orchestration: report.orchestration,
     errorMessage: report.errorMessage,
   };
 }
 
 function buildFinalContent(report: InternalReport) {
-  const totalBytes = report.files.reduce((acc, file) => acc + file.size, 0);
+  const fileSources = report.sources.filter(
+    (source): source is ReportFileSource => source.type === "file"
+  );
+  const textSources = report.sources.filter(
+    (source): source is ReportTextSource => source.type === "text"
+  );
+  const totalBytes = fileSources.reduce((acc, source) => acc + source.file.size, 0);
   const totalMb = (totalBytes / (1024 * 1024)).toFixed(2);
+  const totalTextChars = textSources.reduce((acc, source) => acc + source.content.length, 0);
+  const sourceBreakdown = [
+    `- Total sources: ${report.sources.length}`,
+    `- Files processed: ${fileSources.length}`,
+    `- Markdown text inputs: ${textSources.length}`,
+    `- Total payload from files: ${totalMb} MB`,
+    `- Total markdown characters: ${totalTextChars}`,
+  ];
 
   return [
     `# ${report.title}`,
@@ -93,8 +134,16 @@ function buildFinalContent(report: InternalReport) {
     `- Scope: ${report.config.scope}`,
     `- Detail level: ${report.config.detailLevel}`,
     `- Language: ${report.config.language}`,
-    `- Files processed: ${report.files.length}`,
-    `- Total payload: ${totalMb} MB`,
+    `- Case ID: ${report.config.caseId ?? "orchestrator.default"}`,
+    ...sourceBreakdown,
+    ...(report.orchestration
+      ? [
+          `- Model used: ${report.orchestration.usedModelId}`,
+          `- Provider used: ${report.orchestration.usedProviderId}`,
+          `- Prompt version: v${report.orchestration.usedPromptVersion}`,
+          `- Trace ID: ${report.orchestration.traceId}`,
+        ]
+      : []),
     "",
     "## Key Findings",
     "1. Source documents were normalized and grouped by topic.",
@@ -124,11 +173,18 @@ export function createReport(userId: string, input: CreateReportInput) {
     updatedAt: createdAt,
     startedAt: createdAt,
     config: input.config,
-    files: input.files,
+    sources: input.sources,
     content: "",
+    orchestration: input.orchestration,
     changeLog: [
       "Report created",
-      "Input files received",
+      "Input sources received",
+      ...(input.orchestration
+        ? [
+            `Model selected: ${input.orchestration.usedModelId}`,
+            `Provider selected: ${input.orchestration.usedProviderId}`,
+          ]
+        : []),
       "Pipeline enqueued",
     ],
   };

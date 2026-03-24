@@ -10,6 +10,7 @@ import {
   PencilLine,
   Plus,
   RefreshCw,
+  Settings2,
   Trash2,
   UploadCloud,
   XCircle,
@@ -25,15 +26,17 @@ import {
   ToolOutputPanel,
   ToolSection,
 } from "@/core/components";
+import { OrchestratorSettingsPanel } from "./OrchestratorSettingsPanel";
 import type {
   ReportConfig,
   ReportDetail,
-  ReportFile,
   ReportPhase,
+  ReportSource,
+  ReportTextSource,
   ReportSummary,
 } from "../lib/types";
 
-type AppView = "dashboard" | "wizard" | "review";
+type AppView = "dashboard" | "wizard" | "review" | "settings";
 type WizardStep = 1 | 2 | 3;
 
 const DEFAULT_CONFIG: ReportConfig = {
@@ -41,6 +44,7 @@ const DEFAULT_CONFIG: ReportConfig = {
   detailLevel: "medium",
   language: "es",
   exportFormat: "docx",
+  caseId: "orchestrator.default",
 };
 
 const PHASE_LABELS: Record<ReportPhase, string> = {
@@ -62,7 +66,7 @@ export function AIReportOrchestratorApp() {
   const [error, setError] = useState<string | null>(null);
 
   const [title, setTitle] = useState("Informe Combinado");
-  const [files, setFiles] = useState<ReportFile[]>([]);
+  const [sources, setSources] = useState<ReportSource[]>([]);
   const [config, setConfig] = useState<ReportConfig>(DEFAULT_CONFIG);
 
   const [activeReport, setActiveReport] = useState<ReportDetail | null>(null);
@@ -95,7 +99,7 @@ export function AIReportOrchestratorApp() {
 
   const resetWizard = () => {
     setTitle("Informe Combinado");
-    setFiles([]);
+    setSources([]);
     setConfig(DEFAULT_CONFIG);
     setWizardStep(1);
     setActiveReport(null);
@@ -200,8 +204,8 @@ export function AIReportOrchestratorApp() {
       return;
     }
 
-    if (files.length === 0) {
-      setError("Debes cargar al menos un archivo fuente");
+    if (sources.length === 0) {
+      setError("Debes agregar al menos una fuente (archivo o texto)");
       return;
     }
 
@@ -212,7 +216,7 @@ export function AIReportOrchestratorApp() {
       const response = await fetch("/api/tools/ai-report-orchestrator/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, config, files }),
+        body: JSON.stringify({ title, config, sources }),
       });
 
       if (!response.ok) {
@@ -281,6 +285,10 @@ export function AIReportOrchestratorApp() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setView("settings")}>
+            <Settings2 className="h-4 w-4" />
+            Ajustes
+          </Button>
           <Button variant="outline" onClick={() => void fetchReports()}>
             <RefreshCw className="h-4 w-4" />
             Actualizar
@@ -336,7 +344,7 @@ export function AIReportOrchestratorApp() {
         <WizardView
           step={wizardStep}
           title={title}
-          files={files}
+          sources={sources}
           config={config}
           report={activeReport}
           starting={starting}
@@ -348,7 +356,7 @@ export function AIReportOrchestratorApp() {
             setWizardStep((prev) => (prev === 3 ? 2 : 1));
           }}
           onSetTitle={setTitle}
-          onSetFiles={setFiles}
+          onSetSources={setSources}
           onSetConfig={setConfig}
           onNext={() => setWizardStep((prev) => (prev === 1 ? 2 : 3))}
           onStart={handleCreateReport}
@@ -373,6 +381,8 @@ export function AIReportOrchestratorApp() {
           onExport={handleExport}
         />
       )}
+
+      {view === "settings" && <OrchestratorSettingsPanel />}
     </div>
   );
 }
@@ -515,13 +525,13 @@ function DashboardView({
 function WizardView({
   step,
   title,
-  files,
+  sources,
   config,
   report,
   starting,
   onBack,
   onSetTitle,
-  onSetFiles,
+  onSetSources,
   onSetConfig,
   onNext,
   onStart,
@@ -529,13 +539,13 @@ function WizardView({
 }: {
   step: WizardStep;
   title: string;
-  files: ReportFile[];
+  sources: ReportSource[];
   config: ReportConfig;
   report: ReportDetail | null;
   starting: boolean;
   onBack: () => void;
   onSetTitle: (title: string) => void;
-  onSetFiles: (files: ReportFile[]) => void;
+  onSetSources: (sources: ReportSource[]) => void;
   onSetConfig: (config: ReportConfig) => void;
   onNext: () => void;
   onStart: () => Promise<void>;
@@ -627,8 +637,8 @@ function WizardView({
     <ToolLayout sidebar={sidebar} sidebarWidth="lg">
       <WizardStepsIndicator step={step} />
 
-      {step === 1 && <UploadStep files={files} onSetFiles={onSetFiles} onNext={onNext} />}
-      {step === 2 && <ConfigurationSummaryStep title={title} files={files} config={config} />}
+      {step === 1 && <SourcesStep sources={sources} onSetSources={onSetSources} onNext={onNext} />}
+      {step === 2 && <ConfigurationSummaryStep title={title} sources={sources} config={config} />}
       {step === 3 && <ProcessingStep report={report} onGoReview={onGoReview} />}
     </ToolLayout>
   );
@@ -765,61 +775,148 @@ function ReviewView({
   );
 }
 
-function UploadStep({
-  files,
-  onSetFiles,
+function SourcesStep({
+  sources,
+  onSetSources,
   onNext,
 }: {
-  files: ReportFile[];
-  onSetFiles: (files: ReportFile[]) => void;
+  sources: ReportSource[];
+  onSetSources: (sources: ReportSource[]) => void;
   onNext: () => void;
 }) {
+  const [textTitle, setTextTitle] = useState("Notas en Markdown");
+  const [textContent, setTextContent] = useState("");
+
+  const addFiles = (incoming: FileList | null) => {
+    const selected = Array.from(incoming ?? []).map((file) => ({
+      type: "file" as const,
+      file: {
+        name: file.name,
+        size: file.size,
+        mimeType: file.type || "application/octet-stream",
+      },
+    }));
+
+    if (selected.length === 0) {
+      return;
+    }
+
+    onSetSources([...sources, ...selected]);
+  };
+
+  const addTextSource = () => {
+    if (!textContent.trim()) {
+      return;
+    }
+
+    const next: ReportTextSource = {
+      type: "text",
+      title: textTitle.trim() || "Notas en Markdown",
+      content: textContent,
+      format: "md",
+    };
+
+    onSetSources([...sources, next]);
+    setTextTitle("Notas en Markdown");
+    setTextContent("");
+  };
+
+  const removeSourceAt = (index: number) => {
+    onSetSources(sources.filter((_, currentIndex) => currentIndex !== index));
+  };
+
   return (
     <ToolSection
-      title="Paso 1 - Subida de archivos"
-      description="Arrastra o selecciona PDF, Word, Excel, imagenes y texto plano"
+      title="Paso 1 - Fuentes"
+      description="Combina archivos y texto Markdown para construir el informe"
       variant="subtle"
       actions={
-        <Button size="sm" onClick={onNext} disabled={files.length === 0}>
+        <Button size="sm" onClick={onNext} disabled={sources.length === 0}>
           Continuar
         </Button>
       }
     >
-      <label className="block cursor-pointer rounded-xl border border-dashed border-border bg-background p-6 text-center transition-colors hover:border-primary/50">
-        <input
-          type="file"
-          className="hidden"
-          multiple
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.csv,.txt"
-          onChange={(event) => {
-            const selected = Array.from(event.target.files ?? []).map((file) => ({
-              name: file.name,
-              size: file.size,
-              mimeType: file.type || "application/octet-stream",
-            }));
-            onSetFiles(selected);
-          }}
-        />
-        <UploadCloud className="mx-auto h-8 w-8 text-primary/70" />
-        <p className="mt-3 text-sm font-medium">Drag and drop o click para seleccionar</p>
-        <p className="mt-1 text-xs text-muted-foreground">Maximo recomendado: 20MB por archivo</p>
-      </label>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <label className="block cursor-pointer rounded-xl border border-dashed border-border bg-background p-6 text-center transition-colors hover:border-primary/50">
+          <input
+            type="file"
+            className="hidden"
+            multiple
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.csv,.txt,.md"
+            onChange={(event) => {
+              addFiles(event.target.files);
+              event.currentTarget.value = "";
+            }}
+          />
+          <UploadCloud className="mx-auto h-8 w-8 text-primary/70" />
+          <p className="mt-3 text-sm font-medium">Agregar archivos</p>
+          <p className="mt-1 text-xs text-muted-foreground">PDF, Office, imagenes, CSV, TXT o MD</p>
+        </label>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Agregar texto Markdown</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Titulo de la fuente</label>
+              <Input
+                value={textTitle}
+                onChange={(event) => setTextTitle(event.target.value)}
+                placeholder="Ej: Observaciones del equipo"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Contenido (.md)</label>
+              <textarea
+                value={textContent}
+                onChange={(event) => setTextContent(event.target.value)}
+                placeholder="# Hallazgos\n\n- Punto 1\n- Punto 2"
+                className="min-h-36 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addTextSource}
+              disabled={!textContent.trim()}
+            >
+              Agregar texto
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="mt-4 grid gap-2">
-        {files.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No hay archivos cargados.</p>
+        {sources.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No hay fuentes cargadas.</p>
         ) : (
-          files.map((file) => (
+          sources.map((source, index) => (
             <div
-              key={`${file.name}-${file.size}`}
+              key={source.type === "file" ? `f-${source.file.name}-${source.file.size}-${index}` : `t-${source.title}-${index}`}
               className="flex items-center justify-between rounded-lg border bg-card px-3 py-2 text-sm"
             >
               <div className="min-w-0">
-                <p className="truncate font-medium">{file.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {Math.max(0.01, file.size / (1024 * 1024)).toFixed(2)} MB - {file.mimeType}
-                </p>
+                {source.type === "file" ? (
+                  <>
+                    <p className="truncate font-medium">{source.file.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Archivo - {Math.max(0.01, source.file.size / (1024 * 1024)).toFixed(2)} MB - {source.file.mimeType}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="truncate font-medium">{source.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Texto Markdown - {source.content.length} caracteres
+                    </p>
+                  </>
+                )}
               </div>
+              <Button variant="ghost" size="icon" onClick={() => removeSourceAt(index)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           ))
         )}
@@ -830,13 +927,16 @@ function UploadStep({
 
 function ConfigurationSummaryStep({
   title,
-  files,
+  sources,
   config,
 }: {
   title: string;
-  files: ReportFile[];
+  sources: ReportSource[];
   config: ReportConfig;
 }) {
+  const fileCount = sources.filter((source) => source.type === "file").length;
+  const textCount = sources.filter((source) => source.type === "text").length;
+
   return (
     <ToolSection
       title="Paso 2 - Configuracion"
@@ -845,7 +945,9 @@ function ConfigurationSummaryStep({
     >
       <div className="grid gap-3 md:grid-cols-2">
         <InfoBlock label="Titulo" value={title} />
-        <InfoBlock label="Archivos" value={`${files.length} archivos`} />
+        <InfoBlock label="Fuentes" value={`${sources.length} fuentes`} />
+        <InfoBlock label="Archivos" value={`${fileCount} archivos`} />
+        <InfoBlock label="Texto Markdown" value={`${textCount} entradas`} />
         <InfoBlock label="Alcance" value={config.scope} />
         <InfoBlock label="Detalle" value={config.detailLevel} />
         <InfoBlock label="Idioma" value={config.language} />

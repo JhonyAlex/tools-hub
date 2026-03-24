@@ -14,6 +14,16 @@ export interface ReportConfig {
   detailLevel: "low" | "medium" | "high";
   language: "es" | "en";
   exportFormat: "docx" | "pdf" | "md";
+  caseId?: string;
+}
+
+export interface ReportOrchestrationMeta {
+  caseId: string;
+  usedModelId: string;
+  usedProviderId: string;
+  usedPromptVersion: number;
+  traceId: string;
+  attempts: Array<{ modelId: string; providerId?: string; ok: boolean; error?: string }>;
 }
 
 export interface ReportFile {
@@ -21,6 +31,20 @@ export interface ReportFile {
   size: number;
   mimeType: string;
 }
+
+export interface ReportFileSource {
+  type: "file";
+  file: ReportFile;
+}
+
+export interface ReportTextSource {
+  type: "text";
+  title: string;
+  content: string;
+  format: "md";
+}
+
+export type ReportSource = ReportFileSource | ReportTextSource;
 
 export interface ReportSummary {
   id: string;
@@ -34,7 +58,8 @@ export interface ReportSummary {
 
 export interface ReportDetail extends ReportSummary {
   config: ReportConfig;
-  files: ReportFile[];
+  sources: ReportSource[];
   content: string;
   changeLog: string[];
+  orchestration?: ReportOrchestrationMeta;
 }
