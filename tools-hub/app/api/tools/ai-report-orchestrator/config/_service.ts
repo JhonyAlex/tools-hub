@@ -1,4 +1,6 @@
 import { promises as fs } from "node:fs";
+import { constants as fsConstants } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type {
   AuditEntry,
@@ -13,8 +15,7 @@ import type {
 } from "@/tools/ai-report-orchestrator/lib/config-types";
 
 const CONFIG_SCHEMA_VERSION = 1;
-const CONFIG_DIR = path.join(process.cwd(), ".data", "ai-report-orchestrator");
-const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+const CONFIG_FILE_NAME = "config.json";
 const MAX_AUDIT_ITEMS = 1000;
 
 const REMOTE_CONFIG_URL = process.env.AI_REPORT_ORCHESTRATOR_REMOTE_CONFIG_URL;
@@ -22,6 +23,7 @@ const REMOTE_CONFIG_TOKEN = process.env.AI_REPORT_ORCHESTRATOR_REMOTE_CONFIG_TOK
 
 let cachedConfig: OrchestratorConfig | null = null;
 let cachedInitState: ConfigInitState | null = null;
+let resolvedConfigDir: string | null = null;
 
 function nowISO() {
   return new Date().toISOString();
@@ -204,27 +206,67 @@ function validateConfig(config: OrchestratorConfig): string[] {
 }
 
 async function ensureConfigDir() {
-  await fs.mkdir(CONFIG_DIR, { recursive: true });
+  const configured = process.env.AI_REPORT_ORCHESTRATOR_CONFIG_DIR?.trim();
+  const candidates = [
+    configured,
+    path.join(process.cwd(), ".data", "ai-report-orchestrator"),
+    path.join(os.tmpdir(), "tools-hub", "ai-report-orchestrator"),
+  ].filter((value): value is string => Boolean(value));
+
+  if (resolvedConfigDir) {
+    return resolvedConfigDir;
+  }
+
+  for (const candidate of candidates) {
+    try {
+      await fs.mkdir(candidate, { recursive: true });
+      await fs.access(candidate, fsConstants.W_OK);
+      resolvedConfigDir = candidate;
+      return candidate;
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error("Unable to find a writable config directory");
+}
+
+function getConfigFilePathFromDir(dir: string) {
+  return path.join(dir, CONFIG_FILE_NAME);
 }
 
 async function readLocalConfig(): Promise<OrchestratorConfig | null> {
-  try {
-    const raw = await fs.readFile(CONFIG_FILE, "utf-8");
-    const parsed = JSON.parse(raw) as unknown;
-    if (!isObject(parsed)) {
-      return null;
+  const configured = process.env.AI_REPORT_ORCHESTRATOR_CONFIG_DIR?.trim();
+  const candidateDirs = [
+    configured,
+    resolvedConfigDir,
+    path.join(process.cwd(), ".data", "ai-report-orchestrator"),
+    path.join(os.tmpdir(), "tools-hub", "ai-report-orchestrator"),
+  ].filter((value, index, array): value is string => Boolean(value) && array.indexOf(value) === index);
+
+  for (const dir of candidateDirs) {
+    try {
+      const raw = await fs.readFile(getConfigFilePathFromDir(dir), "utf-8");
+      const parsed = JSON.parse(raw) as unknown;
+      if (!isObject(parsed)) {
+        continue;
+      }
+      resolvedConfigDir = dir;
+      return parsed as unknown as OrchestratorConfig;
+    } catch {
+      continue;
     }
-    return parsed as unknown as OrchestratorConfig;
-  } catch {
-    return null;
   }
+
+  return null;
 }
 
 async function writeLocalConfig(config: OrchestratorConfig) {
-  await ensureConfigDir();
-  const nextPath = `${CONFIG_FILE}.tmp`;
+  const dir = await ensureConfigDir();
+  const configFile = getConfigFilePathFromDir(dir);
+  const nextPath = `${configFile}.tmp`;
   await fs.writeFile(nextPath, JSON.stringify(config, null, 2), "utf-8");
-  await fs.rename(nextPath, CONFIG_FILE);
+  await fs.rename(nextPath, configFile);
 }
 
 async function readRemoteConfig(): Promise<OrchestratorConfig | null> {
@@ -309,7 +351,11 @@ async function persistAndCache(nextConfig: OrchestratorConfig) {
   }
 
   nextConfig.updatedAt = nowISO();
-  await writeLocalConfig(nextConfig);
+  try {
+    await writeLocalConfig(nextConfig);
+  } catch (error) {
+    console.warn("[AIReportOrchestrator] local config persistence disabled", error);
+  }
   cachedConfig = nextConfig;
   return nextConfig;
 }
@@ -329,7 +375,15 @@ export async function initializeOrchestratorConfig() {
     const remoteErrors = validateConfig(remoteCandidate);
     if (remoteErrors.length === 0) {
       syncDerivedFields(remoteCandidate);
-      await writeLocalConfig(remoteCandidate);
+      try {
+        await writeLocalConfig(remoteCandidate);
+      } catch (error) {
+        warnings.push(
+          `remote config loaded but local cache write failed: ${
+            error instanceof Error ? error.message : "unknown error"
+          }`
+        );
+      }
       cachedConfig = remoteCandidate;
       cachedInitState = {
         source: "remote",
@@ -368,7 +422,15 @@ export async function initializeOrchestratorConfig() {
     warnings,
     message: "Invalid or unavailable remote/local config. Baseline loaded.",
   });
-  await writeLocalConfig(baseline);
+  try {
+    await writeLocalConfig(baseline);
+  } catch (error) {
+    warnings.push(
+      `baseline loaded in memory only (local persistence unavailable): ${
+        error instanceof Error ? error.message : "unknown error"
+      }`
+    );
+  }
 
   cachedConfig = baseline;
   cachedInitState = {
