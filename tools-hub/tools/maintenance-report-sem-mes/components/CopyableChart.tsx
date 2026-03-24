@@ -59,6 +59,17 @@ const COLOR_PROPERTIES = [
 
 const UNSUPPORTED_COLOR_FUNCTION = /(oklch|oklab|lab|lch|color-mix)\(/i;
 
+interface InlineStyleSnapshot {
+    property: string;
+    priority: string;
+    value: string;
+}
+
+interface ElementStyleSnapshot {
+    element: HTMLElement | SVGElement;
+    styles: InlineStyleSnapshot[];
+}
+
 interface CopyableChartProps {
     children: React.ReactNode;
     /** Label shown in el tooltip del botón (opcional) */
@@ -131,6 +142,56 @@ export function CopyableChart({ children, label = "Copiar imagen" }: CopyableCha
         });
     }, [normalizeColor]);
 
+    const applySafeCaptureStyles = useCallback((root: HTMLDivElement) => {
+        const elements = [root, ...Array.from(root.querySelectorAll("*"))];
+        const snapshots: ElementStyleSnapshot[] = [];
+
+        elements.forEach((element) => {
+            if (!(element instanceof HTMLElement) && !(element instanceof SVGElement)) {
+                return;
+            }
+
+            const computedStyle = window.getComputedStyle(element);
+            const changedStyles: InlineStyleSnapshot[] = [];
+
+            COLOR_PROPERTIES.forEach((property) => {
+                const rawValue = computedStyle.getPropertyValue(property).trim();
+                if (!UNSUPPORTED_COLOR_FUNCTION.test(rawValue)) {
+                    return;
+                }
+
+                const safeColor = normalizeColor(rawValue);
+                if (!safeColor) {
+                    return;
+                }
+
+                changedStyles.push({
+                    property,
+                    value: element.style.getPropertyValue(property),
+                    priority: element.style.getPropertyPriority(property),
+                });
+
+                element.style.setProperty(property, safeColor, "important");
+            });
+
+            if (changedStyles.length > 0) {
+                snapshots.push({ element, styles: changedStyles });
+            }
+        });
+
+        return () => {
+            snapshots.forEach(({ element, styles }) => {
+                styles.forEach(({ property, value, priority }) => {
+                    if (value) {
+                        element.style.setProperty(property, value, priority);
+                    } else {
+                        element.style.removeProperty(property);
+                    }
+                });
+            });
+        };
+    }, [normalizeColor]);
+
     const wait = useCallback((ms: number) => {
         return new Promise<void>((resolve) => {
             window.setTimeout(resolve, ms);
@@ -188,54 +249,59 @@ export function CopyableChart({ children, label = "Copiar imagen" }: CopyableCha
             }
 
             let canvas: HTMLCanvasElement | null = null;
+            const restoreCaptureStyles = applySafeCaptureStyles(target);
 
-            for (let attempt = 0; attempt < 3; attempt += 1) {
-                await waitForChartRender(target);
+            try {
+                for (let attempt = 0; attempt < 3; attempt += 1) {
+                    await waitForChartRender(target);
 
-                const capturedCanvas = await html2canvas(target, {
-                    backgroundColor: null,
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    logging: false,
-                    width: Math.ceil(bounds.width),
-                    height: Math.ceil(bounds.height),
-                    onclone: (clonedDocument, el) => {
-                        Object.entries(CAPTURE_THEME_VARS).forEach(([name, value]) => {
-                            clonedDocument.documentElement.style.setProperty(name, value);
-                        });
+                    const capturedCanvas = await html2canvas(target, {
+                        backgroundColor: null,
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false,
+                        width: Math.ceil(bounds.width),
+                        height: Math.ceil(bounds.height),
+                        onclone: (clonedDocument, el) => {
+                            Object.entries(CAPTURE_THEME_VARS).forEach(([name, value]) => {
+                                clonedDocument.documentElement.style.setProperty(name, value);
+                            });
 
-                        clonedDocument.documentElement.style.colorScheme = "light";
-                        clonedDocument.body.style.backgroundColor = "#ffffff";
+                            clonedDocument.documentElement.style.colorScheme = "light";
+                            clonedDocument.body.style.backgroundColor = "#ffffff";
 
-                        el.style.boxShadow = "none";
-                        el.style.border = "none";
-                        el.style.borderRadius = "0";
-                        el.style.overflow = "visible";
-                        el.style.backgroundColor = "#ffffff";
-                        el.style.color = "#111827";
+                            el.style.boxShadow = "none";
+                            el.style.border = "none";
+                            el.style.borderRadius = "0";
+                            el.style.overflow = "visible";
+                            el.style.backgroundColor = "#ffffff";
+                            el.style.color = "#111827";
 
-                        sanitizeClonedColors(target, el);
+                            sanitizeClonedColors(target, el);
 
-                        el.querySelectorAll("svg").forEach((svgElement) => {
-                            const svg = svgElement as SVGSVGElement;
-                            svg.style.overflow = "visible";
-                            if (!svg.getAttribute("width")) {
-                                svg.setAttribute("width", `${Math.ceil(bounds.width)}`);
-                            }
-                            if (!svg.getAttribute("height")) {
-                                svg.setAttribute("height", `${Math.ceil(bounds.height)}`);
-                            }
-                        });
-                    },
-                });
+                            el.querySelectorAll("svg").forEach((svgElement) => {
+                                const svg = svgElement as SVGSVGElement;
+                                svg.style.overflow = "visible";
+                                if (!svg.getAttribute("width")) {
+                                    svg.setAttribute("width", `${Math.ceil(bounds.width)}`);
+                                }
+                                if (!svg.getAttribute("height")) {
+                                    svg.setAttribute("height", `${Math.ceil(bounds.height)}`);
+                                }
+                            });
+                        },
+                    });
 
-                if (hasMeaningfulPixels(capturedCanvas)) {
-                    canvas = capturedCanvas;
-                    break;
+                    if (hasMeaningfulPixels(capturedCanvas)) {
+                        canvas = capturedCanvas;
+                        break;
+                    }
+
+                    await wait(120 * (attempt + 1));
                 }
-
-                await wait(120 * (attempt + 1));
+            } finally {
+                restoreCaptureStyles();
             }
 
             if (!canvas) {
@@ -280,7 +346,7 @@ export function CopyableChart({ children, label = "Copiar imagen" }: CopyableCha
         } finally {
             setCopying(false);
         }
-    }, [canvasToBlob, copying, hasMeaningfulPixels, wait, waitForChartRender]);
+    }, [applySafeCaptureStyles, canvasToBlob, copying, hasMeaningfulPixels, sanitizeClonedColors, wait, waitForChartRender]);
 
     return (
         <div
