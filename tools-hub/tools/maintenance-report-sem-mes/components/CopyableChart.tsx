@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from "react";
 import { Copy, Check } from "lucide-react";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 
 const CAPTURE_THEME_VARS: Record<string, string> = {
     "--background": "#ffffff",
