@@ -23,7 +23,12 @@ PROVIDER="openrouter:deepseek/deepseek-v3.2"
 #   FILE_PATTERNS="*.ts,*.tsx"
 #   FILE_PATTERNS="*.py"
 #   FILE_PATTERNS="*.go,*.mod"
-FILE_PATTERNS="*.ts,*.tsx,*.js,*.jsx"
+
+# Revisa código, estilos, HTML y archivos de configuración importantes
+FILE_PATTERNS="*.ts,*.tsx,*.js,*.jsx,*.css,*.scss,*.html,*.json,*.md,*.yml"
+
+# PERO excluye explícitamente lo que no tiene sentido que la IA lea
+EXCLUDE_PATTERNS="*.test.*,*.spec.*,*.d.ts,dist/*,build/*,node_modules/*,package-lock.json,yarn.lock"
 
 # File patterns to exclude from review (comma-separated)
 # Default: none
