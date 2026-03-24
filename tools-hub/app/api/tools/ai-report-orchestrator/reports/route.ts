@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestUserId, unauthorizedResponse } from "@/core/lib/requestUser";
 import { createReport, listReports } from "./_store";
-import { executeWithFallback } from "../config/_service";
+import { getOrchestratorSettings } from "../_settings-service";
+import { runSupervisedMultiAgentWorkflow } from "../_workflow-service";
 
 const MAX_TEXT_SOURCES = 10;
 const MAX_TEXT_SOURCE_CHARS = 10_000;
@@ -163,28 +164,49 @@ export async function POST(req: NextRequest) {
         attempts: Array<{ modelId: string; providerId?: string; ok: boolean; error?: string }>;
       }
     | undefined;
+  let content = "";
+  let changeLog: string[] = [];
 
   try {
-    const execution = await executeWithFallback(userId, data.config.caseId || "orchestrator.default", {
-      sourceCount: data.sources.length,
-      title: data.title.trim(),
-    });
+    const settings = await getOrchestratorSettings(userId);
+    const workflow = await runSupervisedMultiAgentWorkflow(
+      {
+        title: data.title.trim(),
+        goal: `Crear un reporte completo sobre: ${data.title.trim()}`,
+        sources: data.sources,
+        language: data.config.language,
+      },
+      settings.agents
+    );
+
+    const orchestratorAgent = settings.agents.find((agent) => agent.role === "orchestrator");
 
     orchestration = {
       caseId: data.config.caseId || "orchestrator.default",
-      usedModelId: execution.usedModelId,
-      usedProviderId: execution.usedProviderId,
-      usedPromptVersion: execution.usedPromptVersion,
-      traceId: execution.traceId,
-      attempts: execution.attempts,
+      usedModelId: orchestratorAgent?.model || "deepseek/deepseek-chat-v3-0324",
+      usedProviderId: orchestratorAgent?.provider || settings.globalProvider,
+      usedPromptVersion: 1,
+      traceId: crypto.randomUUID(),
+      attempts: settings.agents.map((agent) => ({
+        modelId: `${agent.role}:${agent.model}`,
+        providerId: agent.provider,
+        ok: true,
+      })),
     };
+
+    content = workflow.output.content;
+    changeLog = [
+      ...workflow.output.log,
+      `Calidad final evaluada por supervisor: ${workflow.output.qualityScore}/100`,
+      `Ciclos de supervision: ${workflow.output.reviewCycles}`,
+    ];
   } catch (error) {
     return NextResponse.json(
       {
         error:
           error instanceof Error
-            ? `No se pudo resolver ningun modelo para el caso configurado: ${error.message}`
-            : "No se pudo resolver ningun modelo para el caso configurado",
+            ? `No se pudo ejecutar el flujo multi-agente: ${error.message}`
+            : "No se pudo ejecutar el flujo multi-agente",
       },
       { status: 502 }
     );
@@ -195,6 +217,11 @@ export async function POST(req: NextRequest) {
     config: data.config,
     sources: data.sources,
     orchestration,
+    content,
+    phase: "completed",
+    progress: 100,
+    status: "completed",
+    changeLog,
   });
 
   return NextResponse.json({ report }, { status: 201 });

@@ -18,6 +18,6 @@ export const manifest: ToolManifest = {
     "dashboard",
     "reportes",
   ],
-  requiresDb: false,
+  requiresDb: true,
   path: "/tools/ai-report-orchestrator",
 };

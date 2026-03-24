@@ -148,3 +148,39 @@ model DocChatMessage {
 
   @@index([sessionId])
 }
+
+// ============ AI REPORT ORCHESTRATOR TOOL ============
+enum AgentRole {
+  orchestrator
+  organizer
+  visualizer
+  writer
+}
+
+model OrchestratorSettings {
+  id                 String        @id @default(cuid())
+  userId             String        @unique
+  globalProvider     String        @default("openrouter")
+  encryptedApiKeys   Json          @default("{}")
+  defaultPreferences Json          @default("{}")
+  agents             AgentConfig[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([updatedAt])
+}
+
+model AgentConfig {
+  id           String               @id @default(cuid())
+  settingsId   String
+  settings     OrchestratorSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  role         AgentRole
+  provider     String
+  model        String
+  systemPrompt String               @db.Text
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@unique([settingsId, role])
+  @@index([settingsId])
+}
