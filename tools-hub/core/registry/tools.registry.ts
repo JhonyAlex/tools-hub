@@ -12,6 +12,7 @@ import { manifest as maintenanceReport } from "@/tools/maintenance-report/manife
 import { manifest as maintenanceReportSemMes } from "@/tools/maintenance-report-sem-mes/manifest";
 import { manifest as aurisLm } from "@/tools/auris-lm/manifest";
 import { manifest as docChat } from "@/tools/doc-chat/manifest";
+import { manifest as aiReportOrchestrator } from "@/tools/ai-report-orchestrator/manifest";
 // --- ADD NEW TOOL IMPORTS ABOVE THIS LINE ---
 
 export const TOOL_REGISTRY: ToolManifest[] = [
@@ -21,5 +22,6 @@ export const TOOL_REGISTRY: ToolManifest[] = [
   textCounter,
   jsonFormatter,
   docChat,
+  aiReportOrchestrator,
   // --- ADD NEW TOOLS TO THIS ARRAY ABOVE THIS LINE ---
 ];
