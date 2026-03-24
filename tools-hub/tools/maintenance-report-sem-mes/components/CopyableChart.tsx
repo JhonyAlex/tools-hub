@@ -22,6 +22,44 @@ export function CopyableChart({ children, label = "Copiar imagen" }: CopyableCha
     const [copying, setCopying] = useState(false);
     const [copied, setCopied] = useState(false);
 
+    const wait = useCallback((ms: number) => {
+        return new Promise<void>((resolve) => {
+            window.setTimeout(resolve, ms);
+        });
+    }, []);
+
+    const waitForChartRender = useCallback(async (element: HTMLDivElement) => {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+        const svg = element.querySelector("svg");
+        if (svg) {
+            const box = svg.getBoundingClientRect();
+            if (box.width === 0 || box.height === 0) {
+                await wait(120);
+            }
+        } else {
+            await wait(120);
+        }
+    }, [wait]);
+
+    const hasMeaningfulPixels = useCallback((canvas: HTMLCanvasElement) => {
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context || canvas.width === 0 || canvas.height === 0) {
+            return false;
+        }
+
+        const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+        for (let index = 0; index < data.length; index += 4) {
+            const alpha = data[index + 3];
+            if (alpha !== 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }, []);
+
     const canvasToBlob = useCallback((canvas: HTMLCanvasElement) => {
         return new Promise<Blob | null>((resolve) => {
             canvas.toBlob((blob) => resolve(blob), "image/png");
@@ -33,19 +71,56 @@ export function CopyableChart({ children, label = "Copiar imagen" }: CopyableCha
         setCopying(true);
 
         try {
-            // Capturamos el nodo wrapper directamente (sin bordes ni sombras de la card)
-            const canvas = await html2canvas(wrapperRef.current, {
-                backgroundColor: null,
-                scale: 2, // mayor resolución para que quede nítido
-                useCORS: true,
-                logging: false,
-                // Quitamos sombras y bordes del wrapper antes de capturar
-                onclone: (doc, el) => {
-                    el.style.boxShadow = "none";
-                    el.style.border = "none";
-                    el.style.borderRadius = "0";
-                },
-            });
+            const target = wrapperRef.current;
+            const bounds = target.getBoundingClientRect();
+
+            if (bounds.width === 0 || bounds.height === 0) {
+                throw new Error("El gráfico todavía no terminó de renderizarse.");
+            }
+
+            let canvas: HTMLCanvasElement | null = null;
+
+            for (let attempt = 0; attempt < 3; attempt += 1) {
+                await waitForChartRender(target);
+
+                const capturedCanvas = await html2canvas(target, {
+                    backgroundColor: null,
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    width: Math.ceil(bounds.width),
+                    height: Math.ceil(bounds.height),
+                    onclone: (_doc, el) => {
+                        el.style.boxShadow = "none";
+                        el.style.border = "none";
+                        el.style.borderRadius = "0";
+                        el.style.overflow = "visible";
+
+                        el.querySelectorAll("svg").forEach((svgElement) => {
+                            const svg = svgElement as SVGSVGElement;
+                            svg.style.overflow = "visible";
+                            if (!svg.getAttribute("width")) {
+                                svg.setAttribute("width", `${Math.ceil(bounds.width)}`);
+                            }
+                            if (!svg.getAttribute("height")) {
+                                svg.setAttribute("height", `${Math.ceil(bounds.height)}`);
+                            }
+                        });
+                    },
+                });
+
+                if (hasMeaningfulPixels(capturedCanvas)) {
+                    canvas = capturedCanvas;
+                    break;
+                }
+
+                await wait(120 * (attempt + 1));
+            }
+
+            if (!canvas) {
+                throw new Error("No se pudo capturar el gráfico completo.");
+            }
 
             const blob = await canvasToBlob(canvas);
             if (!blob) {
@@ -85,7 +160,7 @@ export function CopyableChart({ children, label = "Copiar imagen" }: CopyableCha
         } finally {
             setCopying(false);
         }
-    }, [canvasToBlob, copying]);
+    }, [canvasToBlob, copying, hasMeaningfulPixels, wait, waitForChartRender]);
 
     return (
         <div
