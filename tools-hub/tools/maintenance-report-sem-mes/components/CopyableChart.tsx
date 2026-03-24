@@ -72,7 +72,7 @@ interface ElementStyleSnapshot {
 
 interface CopyableChartProps {
     children: React.ReactNode;
-    /** Label shown in el tooltip del botón (opcional) */
+    /** Label shown in el tooltip del botón (opcional). */
     label?: string;
 }
 
