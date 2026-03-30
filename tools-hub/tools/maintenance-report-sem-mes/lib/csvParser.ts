@@ -27,6 +27,40 @@ const COLUMN_MAP: Record<string, keyof LaborRecord> = {
   "Descripción tareas": "descripcionTareas",
 };
 
+const DATE_COLUMN_PREFIXES = new Set([
+  "Fecha Prevista",
+  "Fecha de Inicio",
+  "Fecha de Fin",
+]);
+
+function getRowValue(row: Record<string, string>, csvCol: string): string {
+  const directValue =
+    row[csvCol] ??
+    row[csvCol.trim()] ??
+    Object.entries(row).find(([k]) => k.trim() === csvCol.trim())?.[1];
+
+  if (directValue != null) {
+    return directValue;
+  }
+
+  // Primavera can export date headers with different timezone suffixes (+01/+02, DST).
+  if (DATE_COLUMN_PREFIXES.has(csvCol.split(" (")[0])) {
+    const dynamicDateColumn = Object.entries(row).find(([k]) => {
+      const normalized = k.trim();
+      return (
+        normalized === csvCol ||
+        normalized.startsWith(`${csvCol.split(" (")[0]} (`)
+      );
+    });
+
+    if (dynamicDateColumn?.[1] != null) {
+      return dynamicDateColumn[1];
+    }
+  }
+
+  return "";
+}
+
 export function parseCSV(csvText: string): LaborRecord[] {
   const result = Papa.parse<Record<string, string>>(csvText, {
     header: true,
@@ -38,11 +72,7 @@ export function parseCSV(csvText: string): LaborRecord[] {
   return result.data.map((row) => {
     const record: Partial<LaborRecord> = {};
     for (const [csvCol, fieldKey] of Object.entries(COLUMN_MAP)) {
-      const value =
-        row[csvCol] ??
-        row[csvCol.trim()] ??
-        Object.entries(row).find(([k]) => k.trim() === csvCol.trim())?.[1] ??
-        "";
+      const value = getRowValue(row, csvCol);
       (record as Record<string, string>)[fieldKey] = (value ?? "").trim();
     }
     return record as LaborRecord;
