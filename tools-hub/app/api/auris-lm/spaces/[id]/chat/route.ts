@@ -202,11 +202,21 @@ export async function POST(
       };
 
       try {
+        const readyDocumentCount = await db.aurisLMDocument.count({
+          where: {
+            userId,
+            spaceId,
+            status: "ready",
+          },
+        });
+
+        const dynamicTopK = Math.min(24, Math.max(8, readyDocumentCount));
+
         const topChunks = await retrieveRelevantChunks({
           userId,
           spaceId,
           query: message,
-          topK: 8,
+          topK: dynamicTopK,
         });
 
         const availableByChunk = new Map(
@@ -364,7 +374,7 @@ ${hasWebContext ? `\n\nCONTEXTO WEB:\n${webContext}` : ""}`.trim();
           ...fallbackCitations.filter(
             (fallback) => !validatedCitations.some((citation) => citation.chunkId === fallback.chunkId)
           ),
-        ].slice(0, 8);
+        ].slice(0, dynamicTopK);
 
         const answer = structured.answer.trim();
         const chunkSize = 120;
