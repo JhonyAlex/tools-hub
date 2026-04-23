@@ -12,6 +12,35 @@ interface SemanticChunkRow {
   score: number;
 }
 
+function diversifyByDocument<T extends { id: string; documentId: string }>(
+  items: T[],
+  topK: number
+): T[] {
+  if (items.length <= topK) return items;
+
+  const byDoc = new Map<string, T[]>();
+  for (const item of items) {
+    const bucket = byDoc.get(item.documentId);
+    if (bucket) {
+      bucket.push(item);
+    } else {
+      byDoc.set(item.documentId, [item]);
+    }
+  }
+
+  const firstPass: T[] = [];
+  for (const bucket of byDoc.values()) {
+    if (bucket.length > 0) firstPass.push(bucket[0]);
+    if (firstPass.length >= topK) break;
+  }
+
+  if (firstPass.length >= topK) return firstPass.slice(0, topK);
+
+  const selectedIds = new Set(firstPass.map((item) => item.id));
+  const rest = items.filter((item) => !selectedIds.has(item.id));
+  return [...firstPass, ...rest].slice(0, topK);
+}
+
 export async function retrieveRelevantChunks(params: {
   userId: string;
   spaceId: string;
@@ -23,6 +52,7 @@ export async function retrieveRelevantChunks(params: {
   try {
     const [embedding] = await embedTexts([query]);
     const queryVector = toPgVectorLiteral(embedding);
+    const candidateLimit = Math.max(topK * 4, 24);
 
     const rows = await db.$queryRaw<SemanticChunkRow[]>(Prisma.sql`
       SELECT
@@ -38,11 +68,12 @@ export async function retrieveRelevantChunks(params: {
         AND c."spaceId" = ${spaceId}
         AND c.embedding IS NOT NULL
       ORDER BY c.embedding <=> CAST(${queryVector} AS vector)
-      LIMIT ${topK}
+      LIMIT ${candidateLimit}
     `);
 
     if (rows.length > 0) {
-      return rows.map((row) => ({
+      const diversifiedRows = diversifyByDocument(rows, topK);
+      return diversifiedRows.map((row) => ({
         id: row.id,
         documentId: row.documentId,
         spaceId: row.spaceId,
@@ -74,5 +105,6 @@ export async function retrieveRelevantChunks(params: {
       AND c."spaceId" = ${spaceId}
   `);
 
-  return rankChunks(query, lexicalChunks as ChunkData[], topK);
+  const rankedChunks = rankChunks(query, lexicalChunks as ChunkData[], Math.max(topK * 4, 24));
+  return diversifyByDocument(rankedChunks, topK);
 }

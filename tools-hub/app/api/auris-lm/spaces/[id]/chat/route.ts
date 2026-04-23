@@ -353,6 +353,19 @@ ${hasWebContext ? `\n\nCONTEXTO WEB:\n${webContext}` : ""}`.trim();
           })
           .filter((citation): citation is Citation => citation !== null);
 
+        const fallbackCitations = topChunks.map((chunk) => ({
+          chunkId: chunk.id,
+          docName: chunk.docName,
+          quote: chunk.content.slice(0, 280),
+        }));
+
+        const mergedCitations = [
+          ...validatedCitations,
+          ...fallbackCitations.filter(
+            (fallback) => !validatedCitations.some((citation) => citation.chunkId === fallback.chunkId)
+          ),
+        ].slice(0, 8);
+
         const answer = structured.answer.trim();
         const chunkSize = 120;
         for (let i = 0; i < answer.length; i += chunkSize) {
@@ -363,7 +376,7 @@ ${hasWebContext ? `\n\nCONTEXTO WEB:\n${webContext}` : ""}`.trim();
           type: "final",
           grounded: structured.grounded,
           missingInfo: structured.missingInfo,
-          citations: validatedCitations,
+          citations: mergedCitations,
           webSearchUsed: usedWebSearch,
         });
 
@@ -409,7 +422,7 @@ ${hasWebContext ? `\n\nCONTEXTO WEB:\n${webContext}` : ""}`.trim();
                 ${answer},
                 ${structured.grounded},
                 ${usedWebSearch},
-                ${validatedCitations.length > 0 ? JSON.stringify(validatedCitations) : null}::jsonb
+                ${mergedCitations.length > 0 ? JSON.stringify(mergedCitations) : null}::jsonb
               )
             `);
             await db.aurisLMSpace.update({
