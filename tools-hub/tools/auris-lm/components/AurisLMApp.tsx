@@ -47,43 +47,47 @@ export function AurisLMApp() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-8.5rem)] gap-5">
-      {/* Left sidebar: spaces */}
-      <aside className="w-64 shrink-0 flex flex-col rounded-2xl border bg-card/50 backdrop-blur-sm shadow-sm overflow-hidden">
-        <SpaceList
-          spaces={spaces}
-          activeSpaceId={activeSpaceId}
-          loading={loading}
-          onSelect={setActiveSpaceId}
-          onCreateClick={() => setShowCreateModal(true)}
-          onEditClick={(s) => setEditingSpace(s)}
-          onDeleteClick={(s) => setDeletingSpace(s)}
-        />
+    <div className="flex h-[calc(100vh-12rem)] flex-col lg:flex-row gap-8">
+      {/* Configuration / Spaces side panel - moved to Right on desktop (or top on mobile) */}
+      <aside className="w-full lg:w-72 shrink-0 flex flex-col order-first lg:order-last border-b lg:border-b-0 lg:border-l border-border/50 pb-6 lg:pb-0 lg:pl-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold tracking-tight text-foreground">Tus Espacios</h3>
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => setShowCreateModal(true)}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+          <SpaceList
+            spaces={spaces}
+            activeSpaceId={activeSpaceId}
+            loading={loading}
+            onSelect={setActiveSpaceId}
+            onCreateClick={() => setShowCreateModal(true)}
+            onEditClick={(s) => setEditingSpace(s)}
+            onDeleteClick={(s) => setDeletingSpace(s)}
+          />
+        </div>
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 min-w-0 flex flex-col">
+      {/* Main content - Chat/Workspace */}
+      <main className="flex-1 min-w-0 flex flex-col h-full rounded-xl bg-card border shadow-sm overflow-hidden order-last lg:order-first">
         {activeSpace ? (
           <SpaceView space={activeSpace} />
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-6 rounded-2xl border bg-card/50 backdrop-blur-sm text-center px-12 shadow-sm">
-            <div className="relative">
-              <div className="absolute -inset-4 rounded-full bg-primary/5 blur-2xl animate-pulse" />
-              <BookOpen className="relative size-16 text-primary/40" />
+          <div className="flex flex-1 flex-col items-center justify-center p-8 text-center bg-muted/10">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-6">
+              <BookOpen className="h-8 w-8" />
             </div>
-            <div className="max-w-md space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight">Bienvenido a AurisLM</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                Tu espacio inteligente para análisis de documentos. Sube PDFs, audios o pega texto para empezar a chatear con tu propio contenido.
-              </p>
-            </div>
+            <h2 className="text-xl font-semibold tracking-tight mb-2">Bienvenido a AurisLM</h2>
+            <p className="text-sm text-muted-foreground max-w-sm mb-8 leading-relaxed">
+              Tu espacio inteligente para análisis de documentos. Sube PDFs, audios o pega texto para generar una base de conocimiento propia.
+            </p>
             <Button 
-              size="lg" 
               onClick={() => setShowCreateModal(true)}
-              className="rounded-full px-8 shadow-lg shadow-primary/20 transition-all hover:shadow-primary/30 hover:-translate-y-0.5"
+              className="rounded-full px-6"
             >
-              <Plus className="mr-2 size-4" />
-              Crear mi primer espacio
+              <Plus className="mr-2 h-4 w-4" />
+              Crear nuevo espacio
             </Button>
           </div>
         )}

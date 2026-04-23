@@ -28,38 +28,22 @@ export function CategorySection({
   const label = CATEGORY_LABELS[category];
 
   return (
-    <section
-      className={cn(
-        "relative overflow-hidden rounded-2xl border bg-gradient-to-br p-5 sm:p-6",
-        styles.sectionGradient,
-        styles.border,
-        className
-      )}
-    >
-      {/* Background decoration */}
-      <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br from-background/50 to-transparent blur-3xl" />
-
+    <section className={cn("relative flex flex-col gap-6", className)}>
       {/* Header */}
-      <div className="relative mb-5 flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {Icon && (
-            <div
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-xl border",
-                styles.iconBg,
-                styles.border
-              )}
-            >
-              <Icon className={cn("h-5 w-5", styles.text)} />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <Icon className="h-5 w-5" />
             </div>
           )}
           <div>
-            <h2 className={cn("text-lg font-semibold tracking-tight", styles.text)}>
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">
               {label}
             </h2>
             {count !== undefined && (
-              <p className="text-xs text-muted-foreground">
-                {count} herramienta{count !== 1 ? "s" : ""}
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {count} herramienta{count !== 1 ? "s" : ""} disponibles
               </p>
             )}
           </div>
@@ -68,12 +52,9 @@ export function CategorySection({
         {showViewAll && (
           <Link
             href={`/?category=${category}`}
-            className={cn(
-              "group flex items-center gap-1 text-sm font-medium transition-colors hover:underline",
-              styles.text
-            )}
+            className="group flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            Ver todas
+            Explorar categoría
             <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
         )}

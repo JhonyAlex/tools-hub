@@ -28,8 +28,8 @@ export function Header() {
   const { isSignedIn, isLoaded } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-16 items-center gap-4 px-4 sm:px-6">
+    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="flex h-14 items-center gap-4 px-4 sm:px-6 md:px-8">
         {/* Left section: Mobile menu + Logo */}
         <div className="flex items-center gap-2 shrink-0 min-w-0">
           {/* Mobile Menu - Only visible on mobile */}
@@ -44,7 +44,7 @@ export function Header() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-64">
+            <SheetContent side="left" className="p-0 w-72">
               <Sidebar categories={categories} className="md:hidden !flex" />
             </SheetContent>
           </Sheet>
@@ -52,16 +52,13 @@ export function Header() {
           {/* Logo - Always visible */}
           <Link
             href="/"
-            className="group flex items-center gap-2.5 font-semibold transition-opacity hover:opacity-80"
+            className="group flex items-center gap-3 font-semibold transition-opacity hover:opacity-80"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-primary/30">
-              <Wrench className="h-4.5 w-4.5" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Wrench className="h-4 w-4" />
             </div>
             <div className="flex flex-col hidden sm:flex">
-              <span className="text-base font-bold leading-tight">Tools Hub</span>
-              <span className="text-[10px] text-muted-foreground leading-tight">
-                Panel de herramientas
-              </span>
+              <span className="text-sm font-semibold tracking-tight">Tools Hub</span>
             </div>
           </Link>
         </div>
@@ -72,32 +69,26 @@ export function Header() {
             <div className="flex flex-col items-center text-center min-w-0 max-w-full">
               <div className="flex items-center gap-2 min-w-0">
                 {toolInfo.icon && (
-                  <div
+                  <toolInfo.icon
                     className={cn(
-                      "flex h-7 w-7 items-center justify-center rounded-lg border shrink-0",
+                      "h-4 w-4 shrink-0",
                       toolInfo.category
-                        ? cn(getCategoryStyle(toolInfo.category).bg, getCategoryStyle(toolInfo.category).border)
-                        : "bg-primary/10"
+                        ? getCategoryStyle(toolInfo.category).text
+                        : "text-muted-foreground"
                     )}
-                  >
-                    <toolInfo.icon
-                      className={cn(
-                        "h-3.5 w-3.5",
-                        toolInfo.category
-                          ? getCategoryStyle(toolInfo.category).text
-                          : "text-primary"
-                      )}
-                    />
-                  </div>
+                  />
                 )}
-                <h1 className="text-base font-semibold tracking-tight truncate">
+                <h1 className="text-sm font-medium tracking-tight truncate">
                   {toolInfo.title}
                 </h1>
                 {toolInfo.beta && (
                   <Badge
                     variant="secondary"
-                    className="bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 text-[10px] px-1.5 py-0 shrink-0"
+                    className="text-[10px] px-1.5 py-0 shrink-0 font-medium"
                   >
+                    Beta
+                  </Badge>
+                )}
                     Beta
                   </Badge>
                 )}

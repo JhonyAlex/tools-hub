@@ -33,31 +33,19 @@ export function ToolCard({ tool, className, isFavorite, onToggleFavorite, onVisi
       href={tool.path}
       onClick={() => onVisit?.(tool.slug)}
       className={cn(
-        "group relative flex flex-col rounded-2xl border bg-card p-5 transition-all duration-300",
-        "hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-0.5",
-        "hover:border-primary/20",
+        "group relative flex flex-col rounded-xl border bg-card p-5 transition-colors duration-200",
+        "hover:bg-accent/40 hover:border-border",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         className
       )}
     >
-      {/* Hover gradient background */}
-      <div
-        className={cn(
-          "absolute inset-0 rounded-2xl bg-gradient-to-br opacity-0 transition-opacity duration-300 group-hover:opacity-100",
-          styles.gradient
-        )}
-      />
-
       {/* Content */}
       <div className="relative z-10 flex flex-1 flex-col">
         {/* Header: Icon + Badges */}
         <div className="mb-4 flex items-start justify-between gap-3">
           <div
             className={cn(
-              "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border transition-all duration-300",
-              "group-hover:scale-110 group-hover:shadow-lg",
-              styles.bg,
-              styles.border,
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-background/50",
               styles.text
             )}
           >
@@ -105,25 +93,20 @@ export function ToolCard({ tool, className, isFavorite, onToggleFavorite, onVisi
         </div>
 
         {/* Title */}
-        <h3 className="mb-1.5 text-base font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
+        <h3 className="mb-1.5 text-sm font-semibold tracking-tight text-foreground">
           {tool.name}
         </h3>
 
         {/* Description */}
-        <p className="mb-4 line-clamp-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+        <p className="mb-5 line-clamp-2 flex-1 text-sm text-muted-foreground leading-relaxed">
           {tool.description}
         </p>
 
         {/* Footer: Category + Tags */}
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3 mt-auto">
           <Badge
-            variant="outline"
-            className={cn(
-              "w-fit text-[10px] font-medium uppercase tracking-wide",
-              styles.text,
-              styles.bg,
-              styles.border
-            )}
+            variant="secondary"
+            className="w-fit text-[10px] font-medium bg-muted/60 text-muted-foreground border-transparent hover:bg-muted/80"
           >
             {CATEGORY_LABELS[tool.category]}
           </Badge>
@@ -133,13 +116,13 @@ export function ToolCard({ tool, className, isFavorite, onToggleFavorite, onVisi
               {tool.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors group-hover:bg-accent"
+                  className="inline-flex items-center rounded-md border border-border/50 bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
                 >
                   {tag}
                 </span>
               ))}
               {tool.tags.length > 3 && (
-                <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                <span className="inline-flex items-center rounded-md border border-border/50 bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                   +{tool.tags.length - 3}
                 </span>
               )}
@@ -147,14 +130,6 @@ export function ToolCard({ tool, className, isFavorite, onToggleFavorite, onVisi
           )}
         </div>
       </div>
-
-      {/* Hover indicator line */}
-      <div
-        className={cn(
-          "absolute bottom-0 left-4 right-4 h-0.5 rounded-full opacity-0 transition-all duration-300 group-hover:opacity-100",
-          styles.bg.replace("/10", "")
-        )}
-      />
     </Link>
   );
 }

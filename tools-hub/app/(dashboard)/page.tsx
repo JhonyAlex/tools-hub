@@ -78,12 +78,12 @@ export default function DashboardHome() {
     const Icon = CATEGORY_ICONS[categoryFilter] || Sparkles;
 
     return (
-      <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="space-y-8 animate-in fade-in duration-500">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-semibold tracking-tight">
             {CATEGORY_LABELS[categoryFilter]}
           </h1>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-2 text-base text-muted-foreground">
             {filteredTools.length} herramienta{filteredTools.length !== 1 ? "s" : ""} en esta categoría
           </p>
         </div>
@@ -148,31 +148,29 @@ export default function DashboardHome() {
 
   // Default: Grouped by category
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-10 animate-in fade-in duration-500">
       {/* Welcome Header */}
-      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/5 via-primary/2 to-background p-6 sm:p-8">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <span className="text-sm font-medium text-primary">Tools Hub</span>
+      <div className="flex flex-col gap-4 pt-4 pb-2 border-b">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Sparkles className="h-4 w-4" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Panel de herramientas
-          </h1>
-          <p className="mt-2 text-muted-foreground max-w-xl text-base">
-            Accede a todas las herramientas internas desde un solo lugar. Usa{" "}
-            <kbd className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
-              ⌘K
-            </kbd>{" "}
-            para buscar rápidamente.
-          </p>
+          <span className="text-sm font-medium tracking-wide uppercase text-muted-foreground">Inicio</span>
         </div>
+        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
+          Panel de Herramientas
+        </h1>
+        <p className="max-w-2xl text-base text-muted-foreground leading-relaxed">
+          Accede a todas las utilidades internas del sistema. Utiliza el atajo{" "}
+          <kbd className="inline-flex h-6 items-center rounded border border-border bg-muted/50 px-2 font-mono text-sm font-medium text-foreground">
+            ⌘K
+          </kbd>{" "}
+          para abrir la búsqueda global.
+        </p>
       </div>
 
       {/* Tools by Category */}
-      <div className="space-y-6">
+      <div className="space-y-12">
         {categories
           .filter((cat) => toolsByCategory[cat]?.length > 0)
           .map((category) => {

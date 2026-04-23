@@ -77,21 +77,18 @@ function NavItem({
       href={href}
       title={collapsed ? label : undefined}
       className={cn(
-        "group flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium transition-all duration-200",
+        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200",
         isActive
-          ? "bg-accent text-accent-foreground shadow-sm"
+          ? "bg-accent/80 text-foreground"
           : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
       )}
     >
       <div
         className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200",
+          "flex h-5 w-5 shrink-0 items-center justify-center transition-colors duration-200",
           isActive
-            ? "bg-background/80 text-foreground"
-            : cn(
-                "bg-muted group-hover:bg-background",
-                isCategory && colorClass
-              )
+            ? "text-foreground"
+            : "text-muted-foreground group-hover:text-foreground"
         )}
       >
         {icon}
@@ -100,9 +97,6 @@ function NavItem({
         <>
           <span className="flex-1 truncate">{label}</span>
           {badge}
-          {isActive && (
-            <div className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground/50" />
-          )}
         </>
       )}
     </Link>
@@ -136,28 +130,15 @@ function CollapsibleSection({
   }
 
   return (
-    <div className="space-y-1">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+    <div className="space-y-4 pt-1">
+      <div
+        className="flex w-full items-center justify-between px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70"
       >
         <span className="flex items-center gap-2">
-          {icon}
           {title}
         </span>
-        <ChevronDown
-          className={cn(
-            "h-3.5 w-3.5 transition-transform duration-200",
-            isOpen ? "rotate-0" : "-rotate-90"
-          )}
-        />
-      </button>
-      <div
-        className={cn(
-          "space-y-0.5 overflow-hidden transition-all duration-200",
-          isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-        )}
-      >
+      </div>
+      <div className="space-y-0.5">
         {children}
       </div>
     </div>
@@ -172,12 +153,16 @@ function SidebarHeader({ collapsed, toggle }: SidebarHeaderProps) {
         <br />
         <kbd className="mt-1 inline-block rounded border bg-muted px-1 font-mono text-[9px]">
           ⌘K
-        </kbd>{" "}
-        para buscar
+        </kbd>{" "}h-14 items-center justify-between gap-3 px-4 py-2 border-b">
+      <p className="text-xs text-muted-foreground min-w-0 flex items-center gap-2">
+        <kbd className="inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">
+          ⌘K
+        </kbd>
+        <span className="truncate">Buscar</span>
       </p>
       <button
         onClick={toggle}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         title={collapsed ? "Expandir menú (⌘B)" : "Colapsar menú (⌘B)"}
         aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
       >
@@ -193,20 +178,14 @@ function SidebarHeader({ collapsed, toggle }: SidebarHeaderProps) {
 
 function CollapsedSidebarRailHeader({ toggle }: { toggle: () => void }) {
   return (
-    <div className="shrink-0 border-b border-border/50 bg-muted/30 p-2">
+    <div className="flex h-14 shrink-0 items-center justify-center border-b">
       <button
         onClick={toggle}
-        className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         title="Expandir menú (⌘B)"
         aria-label="Expandir menú"
       >
-        <PanelLeftOpen className="h-4.5 w-4.5" />
-      </button>
-    </div>
-  );
-}
-
-export function Sidebar({ categories, className }: SidebarProps) {
+        <PanelLeftOpen className="h-4 w-4me }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentCategory = searchParams.get("category");
@@ -223,7 +202,7 @@ export function Sidebar({ categories, className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "relative hidden shrink-0 border-r bg-muted/30 md:flex flex-col transition-all duration-300 ease-in-out h-full",
+        "relative hidden shrink-0 border-r md:flex flex-col transition-all duration-300 ease-in-out h-full bg-background",
         collapsed ? "w-16" : "w-64",
         className
       )}
@@ -241,7 +220,7 @@ export function Sidebar({ categories, className }: SidebarProps) {
           onMouseEnter={() => setFlyoutOpen(true)}
         >
           <SidebarHeader collapsed={collapsed} toggle={toggle} />
-          <nav className="flex-1 overflow-y-auto p-2">
+          <nav className="flex-1 overflow-y-auto p-3">
             <SidebarContent
               sortedCategories={sortedCategories}
               isHomeActive={isHomeActive}
@@ -250,7 +229,7 @@ export function Sidebar({ categories, className }: SidebarProps) {
               pathname={pathname}
             />
           </nav>
-          <div className="shrink-0 p-2 border-t border-border/50 bg-background mt-auto">
+          <div className="shrink-0 p-3 border-t bg-background mt-auto">
             <SidebarFooter collapsed={false} />
           </div>
         </div>
@@ -264,7 +243,7 @@ export function Sidebar({ categories, className }: SidebarProps) {
       {collapsed && <CollapsedSidebarRailHeader toggle={toggle} />}
 
       {/* Main nav content - scrollable */}
-      <nav className="flex-1 overflow-y-auto p-2">
+      <nav className="flex-1 overflow-y-auto p-3">
         <SidebarContent
           sortedCategories={sortedCategories}
           isHomeActive={isHomeActive}
@@ -275,7 +254,7 @@ export function Sidebar({ categories, className }: SidebarProps) {
       </nav>
       
       {/* Footer - Always visible at bottom, aligned to screen edge */}
-      <div className="shrink-0 p-2 border-t border-border/50 bg-muted/30 mt-auto">
+      <div className="shrink-0 p-3 border-t bg-background mt-auto">
         <SidebarFooter collapsed={collapsed} />
       </div>
     </aside>
