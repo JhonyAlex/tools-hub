@@ -89,9 +89,6 @@ export function Header() {
                     Beta
                   </Badge>
                 )}
-                    Beta
-                  </Badge>
-                )}
               </div>
               {toolInfo.description && (
                 <p className="text-xs text-muted-foreground truncate max-w-[300px] lg:max-w-[500px]">

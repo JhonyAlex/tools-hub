@@ -147,13 +147,7 @@ function CollapsibleSection({
 
 function SidebarHeader({ collapsed, toggle }: SidebarHeaderProps) {
   return (
-    <div className="flex items-start justify-between gap-3 p-3 border-b border-border/50 bg-muted/30">
-      <p className="text-[11px] text-muted-foreground leading-relaxed min-w-0">
-        <span className="font-semibold text-foreground">Tools Hub</span>
-        <br />
-        <kbd className="mt-1 inline-block rounded border bg-muted px-1 font-mono text-[9px]">
-          ⌘K
-        </kbd>{" "}h-14 items-center justify-between gap-3 px-4 py-2 border-b">
+    <div className="flex h-14 items-center justify-between gap-3 px-4 py-2 border-b">
       <p className="text-xs text-muted-foreground min-w-0 flex items-center gap-2">
         <kbd className="inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">
           ⌘K
@@ -185,7 +179,13 @@ function CollapsedSidebarRailHeader({ toggle }: { toggle: () => void }) {
         title="Expandir menú (⌘B)"
         aria-label="Expandir menú"
       >
-        <PanelLeftOpen className="h-4 w-4me }: SidebarProps) {
+        <PanelLeftOpen className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+export function Sidebar({ categories, className }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentCategory = searchParams.get("category");
