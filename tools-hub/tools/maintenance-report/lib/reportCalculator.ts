@@ -68,8 +68,17 @@ export function calculateMetrics(records: OTRecord[]): Omit<ReportMetrics, "aiAn
     return isSameDay(finDate, yesterday);
   }).length;
 
-  // 6. Revisiones por Miguel (Observaciones must include "Miguel" on all OTs)
-  const miguelChecks: MiguelCheckResult[] = records.map((r) => ({
+  // 6. Revisiones por Miguel (all OTs from 2026 onwards must have "Miguel" in Observaciones)
+  const MIGUEL_YEAR_FROM = 2026;
+  const miguelScopeRecords = records.filter((r) => {
+    const d =
+      parseMadridDate(r.fecha) ??
+      parseMadridDate(r.fechaDeInicioDeSLA) ??
+      parseMadridDate(r.fechaDeFinDeSLA);
+    return d ? d.getFullYear() >= MIGUEL_YEAR_FROM : false;
+  });
+
+  const miguelChecks: MiguelCheckResult[] = miguelScopeRecords.map((r) => ({
     ordenDeTrabajo: r.ordenDeTrabajo,
     descripcion: r.descripcion,
     observaciones: r.observaciones,
