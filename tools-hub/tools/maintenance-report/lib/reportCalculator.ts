@@ -11,7 +11,6 @@ import {
 } from "./dateUtils";
 
 const LATE_PM_THRESHOLD_DAYS = 3;
-const CURRENT_YEAR = new Date().getFullYear();
 
 export function calculateMetrics(records: OTRecord[]): Omit<ReportMetrics, "aiAnalyzed" | "aiResults" | "badDescriptions" | "badObservaciones"> {
   const now = new Date();
@@ -20,14 +19,14 @@ export function calculateMetrics(records: OTRecord[]): Omit<ReportMetrics, "aiAn
   // 1. Preventivos pendientes (Estado = "Nuevo")
   const pendingPMs = records.filter((r) => r.estado.trim() === "Nuevo").length;
 
-  // 2. Preventivos atrasados: Estado="Nuevo" + >3 business days since creation
+  // 2. Preventivos atrasados: Estado="Nuevo" + >=3 business days since creation
   const latePreventivesList: LatePreventive[] = [];
   for (const r of records) {
     if (r.estado.trim() !== "Nuevo") continue;
     const created = parseMadridDate(r.fecha);
     if (!created) continue;
     const days = businessDaysBetween(created, now);
-    if (days > LATE_PM_THRESHOLD_DAYS) {
+    if (days >= LATE_PM_THRESHOLD_DAYS) {
       latePreventivesList.push({
         ordenDeTrabajo: r.ordenDeTrabajo,
         descripcion: r.descripcion,
@@ -69,14 +68,8 @@ export function calculateMetrics(records: OTRecord[]): Omit<ReportMetrics, "aiAn
     return isSameDay(finDate, yesterday);
   }).length;
 
-  // 6. Revisiones por Miguel (Observaciones contains "miguel", current year only, estado = "Terminado")
-  const currentYearRecords = records.filter((r) => {
-    if (r.estado.trim().toLowerCase() !== "terminado") return false;
-    const d = parseMadridDate(r.fecha) ?? parseMadridDate(r.fechaDeInicioDeSLA);
-    return d ? d.getFullYear() >= CURRENT_YEAR : false;
-  });
-
-  const miguelChecks: MiguelCheckResult[] = currentYearRecords.map((r) => ({
+  // 6. Revisiones por Miguel (Observaciones must include "Miguel" on all OTs)
+  const miguelChecks: MiguelCheckResult[] = records.map((r) => ({
     ordenDeTrabajo: r.ordenDeTrabajo,
     descripcion: r.descripcion,
     observaciones: r.observaciones,

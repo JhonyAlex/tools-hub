@@ -226,9 +226,9 @@ export function buildShareText(metrics: ReportMetrics): string {
 
   parts.push("");
   if (metrics.miguelPendingCount === 0) {
-    parts.push(`✅ Revisiones por Miguel registradas`);
+    parts.push(`✅ Revisiones por Miguel registradas en todas las OT`);
   } else {
-    parts.push(`⚠️ ${metrics.miguelPendingCount} OTs sin revisión de Miguel`);
+    parts.push(`⚠️ ${metrics.miguelPendingCount} OTs sin revisión de Miguel en observaciones`);
   }
 
   if (metrics.aiAnalyzed) {
