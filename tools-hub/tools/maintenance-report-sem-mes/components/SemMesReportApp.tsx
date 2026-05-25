@@ -354,7 +354,7 @@ export function SemMesReportApp() {
                     Sin registros en este período
                   </h3>
                   <p className="text-sm text-muted-foreground/70 mt-1 max-w-sm">
-                    No se encontraron registros con &quot;Fecha de Fin&quot; dentro del rango
+                    No se encontraron registros con &quot;Fecha de Inicio&quot; dentro del rango
                     seleccionado. Prueba con otro período o fechas personalizadas.
                   </p>
                 </div>

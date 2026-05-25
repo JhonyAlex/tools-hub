@@ -36,10 +36,23 @@ export function calculateReport(
   const unique = deduplicateRecords(records);
 
   // 2. Filter by "Fecha de Inicio" within dateRange
+  //    Also exclude OTs planned way before the period (e.g. January OTs
+  //    with residual May entries), allowing a grace window equal to the
+  //    period length for work that slipped from the previous period.
+  const periodLengthMs = dateRange.end.getTime() - dateRange.start.getTime();
+  const earliestPrevista = new Date(dateRange.start.getTime() - periodLengthMs);
+
   const filtered = unique.filter((r) => {
     const fechaInicio = parseMadridDate(r.fechaDeInicio);
     if (!fechaInicio) return false;
-    return isDateInRange(fechaInicio, dateRange.start, dateRange.end);
+    if (!isDateInRange(fechaInicio, dateRange.start, dateRange.end)) return false;
+
+    const fechaPrevista = parseMadridDate(r.fechaPrevista);
+    if (fechaPrevista) {
+      return fechaPrevista >= earliestPrevista;
+    }
+
+    return true;
   });
 
   // 3. Enrich with transformed worker names and parsed hours
