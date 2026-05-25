@@ -4,8 +4,11 @@
 
 /**
  * Transform worker names:
- * - If any observation field contains "paco" (any case/position/punctuation), assign "Francisco Moral"
- * - Otherwise keep original worker name
+ * - Only transforms when the trabajador field is empty or missing (not assigned)
+ * - If any observation field contains "paco" as a standalone reference,
+ *   assign "Francisco Moral" as the worker
+ * - Never overrides an existing valid worker name to avoid false positives
+ *   (e.g. "Paco" mentioned as a collaborator should not reassign the primary worker)
  */
 export function transformWorkerName(
   trabajador: string,
@@ -13,10 +16,13 @@ export function transformWorkerName(
 ): string {
   const name = trabajador.trim();
 
+  if (name) {
+    return name;
+  }
+
   const hasPacoAlias = observationFields.some((value) => {
     if (!value) return false;
-    // Match "paco" as a standalone token even with punctuation around it.
-    return /(^|[^a-z0-9])paco([^a-z0-9]|$)/i.test(value);
+    return /(^|[^\p{L}\p{N}])paco([^\p{L}\p{N}]|$)/iu.test(value);
   });
 
   if (hasPacoAlias) {

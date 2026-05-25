@@ -35,11 +35,11 @@ export function calculateReport(
   // 1. Deduplicate
   const unique = deduplicateRecords(records);
 
-  // 2. Filter by "Fecha de Fin" within dateRange
+  // 2. Filter by "Fecha de Inicio" within dateRange
   const filtered = unique.filter((r) => {
-    const fechaFin = parseMadridDate(r.fechaDeFin);
-    if (!fechaFin) return false;
-    return isDateInRange(fechaFin, dateRange.start, dateRange.end);
+    const fechaInicio = parseMadridDate(r.fechaDeInicio);
+    if (!fechaInicio) return false;
+    return isDateInRange(fechaInicio, dateRange.start, dateRange.end);
   });
 
   // 3. Enrich with transformed worker names and parsed hours
