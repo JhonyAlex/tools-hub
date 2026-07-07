@@ -58,6 +58,21 @@ export interface ResolvedAIProvider {
 }
 
 /**
+ * Normalizes a base URL by:
+ * - Removing trailing slashes
+ * - Stripping /chat/completions, /v1/chat/completions suffixes (user may have pasted the full endpoint)
+ * - Ensuring no double slashes
+ */
+function normalizeBaseUrl(raw: string): string {
+  let url = raw.trim().replace(/\/+$/, "");
+  // If user pasted the full chat endpoint, strip it
+  url = url.replace(/\/chat\/completions$/i, "");
+  // If user pasted the embeddings endpoint, strip it
+  url = url.replace(/\/embeddings$/i, "");
+  return url;
+}
+
+/**
  * Resolves the active AI provider for use by any tool.
  * Priority: GlobalAIProvider (isDefault=true or first) > OPENROUTER_API_KEY env var.
  */
@@ -73,7 +88,7 @@ export async function getActiveAIProvider(): Promise<ResolvedAIProvider> {
       const apiKey = decryptValue(cp.encryptedApiKey);
       if (apiKey) {
         return {
-          baseUrl: cp.baseUrl,
+          baseUrl: normalizeBaseUrl(cp.baseUrl),
           apiKey,
           model: cp.defaultModel,
           name: cp.name,
