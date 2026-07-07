@@ -1,26 +1,25 @@
 // ============================================================
-// AI ANALYSIS - OpenRouter DeepSeek for report generation
+// AI ANALYSIS - Uses global AI provider config
 // ============================================================
 import type { ReportAggregations, AIReportContent } from "../types";
 import { formatHours } from "./timeParser";
+import { getActiveAIProvider } from "@/core/lib/ai-provider";
 
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = "deepseek/deepseek-v3.2";
-
-async function callOpenRouter(
-  prompt: string,
-  apiKey: string
+async function callAI(
+  prompt: string
 ): Promise<string> {
-  const response = await fetch(OPENROUTER_API_URL, {
+  const provider = await getActiveAIProvider();
+
+  const response = await fetch(`${provider.baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${provider.apiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": "https://tools-hub.local",
       "X-Title": "Pigmea Reporte Semanal/Mensual",
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: provider.model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.2,
       max_tokens: 3000,
@@ -29,7 +28,7 @@ async function callOpenRouter(
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`OpenRouter error: ${response.status} - ${err}`);
+    throw new Error(`Error IA (${provider.name}): ${response.status} - ${err}`);
   }
 
   const data = await response.json();
@@ -38,7 +37,6 @@ async function callOpenRouter(
 
 export async function generateAIReport(
   aggregations: ReportAggregations,
-  apiKey: string
 ): Promise<AIReportContent> {
   const topAssets = aggregations.assets.slice(0, 10);
   const periodLabel =
@@ -95,7 +93,7 @@ Responde SOLO con un JSON válido con esta estructura, sin texto adicional:
 DATOS:
 ${dataSummary}`;
 
-  const content = await callOpenRouter(prompt, apiKey);
+  const content = await callAI(prompt);
 
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {

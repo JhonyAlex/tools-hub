@@ -1,6 +1,7 @@
 // ============================================================
-// OCR Client — Extrae texto de imágenes via OpenRouter Vision API
+// OCR Client — Extrae texto de imágenes via AI Provider
 // ============================================================
+import { getActiveAIProvider } from "@/core/lib/ai-provider";
 // Modelo principal: qwen/qwen3.5-flash-02-23
 // Fallback (si no funciona qwen): mistralai/mistral-small-3.2-24b-instruct
 
@@ -27,33 +28,31 @@ export async function ocrFromImage(
   imageBuffer: Buffer,
   mimeType: string
 ): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENROUTER_API_KEY no configurada.");
-  }
+  const provider = await getActiveAIProvider();
 
   const base64 = imageBuffer.toString("base64");
   const dataUrl = `data:${mimeType};base64,${base64}`;
 
   // Intentar con modelo principal, fallback si no soporta visión
-  const text = await callVisionModel(apiKey, PRIMARY_MODEL, dataUrl);
+  const text = await callVisionModel(provider.baseUrl, provider.apiKey, PRIMARY_MODEL, dataUrl);
   if (text !== null) return text;
 
   console.warn(
     `[OCR] ${PRIMARY_MODEL} no soportó visión, usando fallback: ${FALLBACK_MODEL}`
   );
-  const fallbackText = await callVisionModel(apiKey, FALLBACK_MODEL, dataUrl);
+  const fallbackText = await callVisionModel(provider.baseUrl, provider.apiKey, FALLBACK_MODEL, dataUrl);
   if (fallbackText !== null) return fallbackText;
 
   throw new Error("No se pudo extraer texto de la imagen con OCR.");
 }
 
 async function callVisionModel(
+  baseUrl: string,
   apiKey: string,
   model: string,
   imageDataUrl: string
 ): Promise<string | null> {
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,

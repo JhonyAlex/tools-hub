@@ -200,3 +200,15 @@ model OrchestratorCustomProvider {
 
   @@index([settingsId])
 }
+
+// ============ GLOBAL AI PROVIDERS ============
+model GlobalAIProvider {
+  id              String   @id @default(cuid())
+  name            String
+  baseUrl         String
+  encryptedApiKey String
+  defaultModel    String
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

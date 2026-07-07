@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/core/lib/db";
 import { getRequestUserId, unauthorizedResponse } from "@/core/lib/requestUser";
+import { getActiveAIProvider } from "@/core/lib/ai-provider";
 
 interface OpenRouterMessage {
   content?: string;
@@ -302,17 +303,16 @@ export async function POST(
     let suggestedName = document.originalName;
     let usedFallback = false;
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (apiKey) {
-      try {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const provider = await getActiveAIProvider();
+    try {
+        const response = await fetch(`${provider.baseUrl}/chat/completions`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${apiKey}`,
+            Authorization: `Bearer ${provider.apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: MODEL,
+            model: provider.model,
             temperature: 0,
             max_tokens: 32,
             messages: [
@@ -368,9 +368,6 @@ export async function POST(
         console.error("[AurisLM] Suggest name provider call failed:", providerError);
         usedFallback = true;
       }
-    } else {
-      usedFallback = true;
-    }
 
     if (usedFallback) {
       suggestedName = ensureDifferentSuggestion(

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/core/lib/db";
+import { getActiveAIProvider } from "@/core/lib/ai-provider";
 
 interface ChatRequestBody {
     sessionId: string;
@@ -82,25 +83,19 @@ ${docSnippet}${session.extractedText.length > 12000 ? "\n\n[... documento trunca
                     { role: "user", content: message },
                 ];
 
-                // Call OpenRouter
-                const orKey = process.env.OPENROUTER_API_KEY;
-                if (!orKey) {
-                    sendEvent({ type: "delta", delta: "Error: OPENROUTER_API_KEY no configurada." });
-                    controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-                    controller.close();
-                    return;
-                }
+                // Call AI provider
+                const provider = await getActiveAIProvider();
 
-                const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                const orRes = await fetch(`${provider.baseUrl}/chat/completions`, {  
                     method: "POST",
                     headers: {
-                        Authorization: `Bearer ${orKey}`,
+                        Authorization: `Bearer ${provider.apiKey}`,
                         "Content-Type": "application/json",
                         "HTTP-Referer": "https://tools-hub.app",
                         "X-Title": "DocChat",
                     },
                     body: JSON.stringify({
-                        model: "deepseek/deepseek-chat",
+                        model: provider.model,
                         messages: openRouterMessages,
                         stream: true,
                         temperature: 0.2,

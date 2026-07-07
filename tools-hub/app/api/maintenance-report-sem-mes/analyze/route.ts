@@ -6,14 +6,6 @@ import type { ReportAggregations } from "@/tools/maintenance-report-sem-mes/type
 
 export async function POST(req: NextRequest) {
   try {
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "OPENROUTER_API_KEY not configured in environment" },
-        { status: 500 }
-      );
-    }
-
     const body = await req.json();
     const aggregations: ReportAggregations = body.aggregations;
 
@@ -24,7 +16,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const aiContent = await generateAIReport(aggregations, apiKey);
+    const aiContent = await generateAIReport(aggregations);
 
     return NextResponse.json({ aiContent });
   } catch (err) {

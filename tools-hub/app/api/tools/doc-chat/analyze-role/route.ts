@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/core/lib/db";
+import { getActiveAIProvider } from "@/core/lib/ai-provider";
 
 interface OpenRouterResponse {
     choices?: Array<{
@@ -26,13 +27,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Sesión no encontrada." }, { status: 404 });
         }
 
-        const orKey = process.env.OPENROUTER_API_KEY;
-        if (!orKey) {
-            return NextResponse.json(
-                { error: "OPENROUTER_API_KEY no configurada." },
-                { status: 500 }
-            );
-        }
+        const provider = await getActiveAIProvider();
 
         // Take first ~3000 chars for role analysis (cost-effective)
         const sampleText = session.extractedText.slice(0, 3000);
@@ -49,16 +44,16 @@ Responde SOLO con el system prompt, sin explicaciones adicionales.
 FRAGMENTO DEL DOCUMENTO:
 ${sampleText}`;
 
-        const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const orRes = await fetch(`${provider.baseUrl}/chat/completions`, {
             method: "POST",
             headers: {
-                Authorization: `Bearer ${orKey}`,
+                Authorization: `Bearer ${provider.apiKey}`,
                 "Content-Type": "application/json",
                 "HTTP-Referer": "https://tools-hub.app",
                 "X-Title": "DocChat",
             },
             body: JSON.stringify({
-                model: "deepseek/deepseek-chat",
+                model: provider.model,
                 messages: [{ role: "user", content: rolePrompt }],
                 temperature: 0.3,
                 max_tokens: 256,

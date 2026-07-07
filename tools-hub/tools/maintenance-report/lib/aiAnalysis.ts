@@ -1,12 +1,9 @@
 // ============================================================
-// AI ANALYSIS SERVICE - Uses OpenRouter API to evaluate
-// description quality and solution documentation
+// AI ANALYSIS SERVICE - Uses global AI provider config
 // ============================================================
 import type { OTRecord, AIAnalysisResult } from "../types";
 import { getPreviousBusinessDay, parseMadridDate, isSameDay } from "./dateUtils";
-
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const MODEL = "deepseek/deepseek-v3.2";
+import { getActiveAIProvider } from "@/core/lib/ai-provider";
 
 const BATCH_SIZE = 20;
 
@@ -18,8 +15,9 @@ interface AIBatchItem {
 
 async function analyzeBatch(
   items: AIBatchItem[],
-  apiKey: string
 ): Promise<AIAnalysisResult[]> {
+  const provider = await getActiveAIProvider();
+
   const prompt = `Eres un auditor de órdenes de trabajo de mantenimiento industrial. Analiza cada OT y determina si:
 1. "descripcion": describe claramente QUÉ FALLÓ o QUÉ PROBLEMA motivó el mantenimiento (no vale solo poner el nombre de una máquina o "revisión").
 2. "observaciones": explica claramente CÓMO SE SOLUCIONÓ el problema (no vale solo "solucionado" o "realizado").
@@ -36,16 +34,16 @@ Responde SOLO con un array JSON válido, sin texto adicional, con este formato p
 OTs a analizar:
 ${JSON.stringify(items, null, 2)}`;
 
-  const response = await fetch(OPENROUTER_API_URL, {
+  const response = await fetch(`${provider.baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${provider.apiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": "https://tools-hub.local",
       "X-Title": "Pigmea Reporte Mantenimiento",
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: provider.model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
       max_tokens: 4000,
@@ -54,7 +52,7 @@ ${JSON.stringify(items, null, 2)}`;
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`OpenRouter error: ${response.status} - ${err}`);
+    throw new Error(`Error IA (${provider.name}): ${response.status} - ${err}`);
   }
 
   const data = await response.json();
@@ -83,7 +81,6 @@ ${JSON.stringify(items, null, 2)}`;
 
 export async function analyzeDescriptions(
   records: OTRecord[],
-  apiKey: string,
 ): Promise<AIAnalysisResult[]> {
   // Only analyze OTs terminated the previous business day
   const yesterday = getPreviousBusinessDay(new Date());
@@ -108,7 +105,7 @@ export async function analyzeDescriptions(
 
   const results: AIAnalysisResult[] = [];
   for (const batch of batches) {
-    const batchResults = await analyzeBatch(batch, apiKey);
+    const batchResults = await analyzeBatch(batch);
     results.push(...batchResults);
   }
 

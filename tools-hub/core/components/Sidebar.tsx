@@ -424,6 +424,13 @@ interface SidebarFooterProps {
 function SidebarFooter({ collapsed }: SidebarFooterProps) {
   return (
     <div className="space-y-1">
+      <NavItem
+        href="/settings"
+        icon={<Settings className="h-4 w-4" />}
+        label="Configuracion"
+        isActive={false}
+        collapsed={collapsed}
+      />
       {!collapsed && (
         <p className="px-2 py-1 text-[11px] leading-relaxed text-muted-foreground">
           Hecho por{" "}
