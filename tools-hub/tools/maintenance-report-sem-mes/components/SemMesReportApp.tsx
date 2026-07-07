@@ -114,19 +114,24 @@ export function SemMesReportApp() {
         const parsed = parseCSV(content);
         setRecords(parsed);
         setCsvFileName(fileName);
-
-        if (dateRange) {
-          const agg = calculateReport(parsed, dateRange, periodType);
-          setAggregations(agg);
-        }
       } catch (e) {
         setError(`Error al parsear CSV: ${String(e)}`);
       } finally {
         setIsParsingCSV(false);
       }
     },
-    [dateRange, periodType]
+    []
   );
+
+  // ──────────────────────────────────────────
+  // Auto-recalculate when records or dateRange change
+  // ──────────────────────────────────────────
+  useEffect(() => {
+    if (records.length > 0 && dateRange) {
+      const agg = calculateReport(records, dateRange, periodType);
+      setAggregations(agg);
+    }
+  }, [records, dateRange, periodType]);
 
   // ──────────────────────────────────────────
   // AI Analysis (cancelable)
