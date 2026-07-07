@@ -6,6 +6,7 @@ import {
 } from "../_settings-service";
 import {
   AGENT_ROLES,
+  type CustomProviderInput,
   type OrchestratorSettingsInput,
 } from "@/tools/ai-report-orchestrator/lib/settings-types";
 
@@ -60,6 +61,33 @@ function parsePayload(body: unknown): Partial<OrchestratorSettingsInput> {
             };
           })
           .filter(Boolean) as OrchestratorSettingsInput["agents"])
+      : undefined,
+    customProviders: Array.isArray(data.customProviders)
+      ? (data.customProviders
+          .map((cp) => {
+            if (!cp || typeof cp !== "object") {
+              return null;
+            }
+
+            const entry = cp as Record<string, unknown>;
+            if (
+              typeof entry.name !== "string" ||
+              typeof entry.baseUrl !== "string" ||
+              typeof entry.defaultModel !== "string"
+            ) {
+              return null;
+            }
+
+            return {
+              id: typeof entry.id === "string" ? entry.id : undefined,
+              name: entry.name,
+              baseUrl: entry.baseUrl,
+              apiKey: typeof entry.apiKey === "string" ? entry.apiKey : "",
+              defaultModel: entry.defaultModel,
+              isDefault: Boolean(entry.isDefault),
+            };
+          })
+          .filter(Boolean) as CustomProviderInput[])
       : undefined,
   };
 }

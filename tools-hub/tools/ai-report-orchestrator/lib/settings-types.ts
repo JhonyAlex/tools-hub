@@ -14,6 +14,27 @@ export interface OrchestratorSettingsInput {
   defaultPreferences: Record<string, unknown>;
   apiKeys?: Record<string, string>;
   agents: AgentConfigInput[];
+  customProviders?: CustomProviderInput[];
+}
+
+export interface CustomProviderInput {
+  id?: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  defaultModel: string;
+  isDefault?: boolean;
+}
+
+export interface CustomProviderResponse {
+  id: string;
+  name: string;
+  baseUrl: string;
+  defaultModel: string;
+  isDefault: boolean;
+  hasApiKey: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface OrchestratorSettingsResponse {
@@ -25,6 +46,7 @@ export interface OrchestratorSettingsResponse {
   createdAt: string;
   updatedAt: string;
   agents: AgentConfigInput[];
+  customProviders: CustomProviderResponse[];
 }
 
 export interface WorkflowRunInput {

@@ -158,14 +158,15 @@ enum AgentRole {
 }
 
 model OrchestratorSettings {
-  id                 String        @id @default(cuid())
-  userId             String        @unique
-  globalProvider     String        @default("openrouter")
-  encryptedApiKeys   Json          @default("{}")
-  defaultPreferences Json          @default("{}")
+  id                 String                      @id @default(cuid())
+  userId             String                      @unique
+  globalProvider     String                      @default("openrouter")
+  encryptedApiKeys   Json                        @default("{}")
+  defaultPreferences Json                        @default("{}")
   agents             AgentConfig[]
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  customProviders    OrchestratorCustomProvider[]
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
 
   @@index([updatedAt])
 }
@@ -182,5 +183,20 @@ model AgentConfig {
   updatedAt    DateTime             @updatedAt
 
   @@unique([settingsId, role])
+  @@index([settingsId])
+}
+
+model OrchestratorCustomProvider {
+  id              String               @id @default(cuid())
+  settingsId      String
+  settings        OrchestratorSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  name            String
+  baseUrl         String
+  encryptedApiKey String
+  defaultModel    String
+  isDefault       Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
   @@index([settingsId])
 }
