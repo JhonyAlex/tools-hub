@@ -16,6 +16,7 @@ import {
   BarChart3,
   CheckCircle2,
   Cpu,
+  AlertCircle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -282,6 +283,36 @@ export function SemMesReportApp() {
           {/* Error */}
           {error && (
             <UploadError message={error} onRetry={() => setError(null)} />
+          )}
+
+          {/* Upload status */}
+          {records.length > 0 && !aggregations && (
+            <Card className="border-blue-200 bg-blue-50/60 dark:border-blue-800 dark:bg-blue-900/20">
+              <CardContent className="pt-4 flex items-center gap-3 text-sm text-blue-700 dark:text-blue-300">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>
+                  <strong>{records.length}</strong> registros parseados de <strong>{csvFileName}</strong>.
+                  Seleccioná un período para generar el reporte.
+                </span>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* No records in period */}
+          {aggregations && aggregations.filteredRecords === 0 && (
+            <Card className="border-amber-200 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-900/20">
+              <CardContent className="pt-4 text-sm text-amber-700 dark:text-amber-300 space-y-2">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span className="font-medium">Sin registros en el período seleccionado</span>
+                </div>
+                <p className="text-xs opacity-80 pl-6">
+                  Se parsearon <strong>{records.length}</strong> registros de <strong>{csvFileName}</strong>,
+                  pero ninguno tiene "Fecha de Inicio" dentro del período seleccionado.
+                  Probá con otro período o verificá las fechas del CSV.
+                </p>
+              </CardContent>
+            </Card>
           )}
 
           {/* Results */}
